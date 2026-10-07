@@ -150,7 +150,7 @@ try {
   const paused = await rest.getByRole('timer').textContent()
   await page.reload()
   await expect(rest).toBeVisible(); await expect(rest.getByRole('timer')).toHaveText(paused)
-  await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3' })).toBeVisible()
+  await expect(rest.locator('.modal-heading')).toContainText('Γύρος 1 / 3')
   await rest.getByRole('button', { name: 'Συνέχεια', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Γύρος 2 / 3' })).toBeVisible()
   await anna.getByRole('button', { name: 'Ίδιο με πριν', exact: true }).click()
