@@ -512,7 +512,7 @@ tbody tr:last-child td { border: 0; }
 .management-rules .card { padding: 24px; }
 .management-rules h3 { font-size: 15px; margin: 12px 0 8px; }
 .management-rules p { color: var(--muted); font-size: 12px; line-height: 1.9; }
-.account-form { border: 0; padding: 0; margin: 0; min-width: 0; }
+.account-form { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
 @media (max-width: 900px) { .bottom-nav > a { padding-inline: 6px; flex: 1; min-width: 0; } }
 @media (max-width: 600px) {
   .managed-user { grid-template-columns: 36px minmax(0, 1fr); padding: 18px; gap: 10px; }
