@@ -33,9 +33,12 @@ test('an acknowledgement of an older in-flight value cannot discard a newer loca
 test('remote refresh preserves pending edits while accepting other cloud records', async () => {
   const local = emptyWorkspace(), remote = emptyWorkspace()
   local.goals.anna.value = 85; remote.goals.anna.value = 90; remote.goals.dimitra.value = 88
+  remote.accountManagement = true
   const merged = mergeRemote(local, remote, [{ key: 'key', scope: 'coach', kind: 'goal', entityId: 'anna', payload: local.goals.anna, baseRevision: 0, operationId: 'op', createdAt: 0 }])
   expect(merged.goals.anna.value).toBe(85)
   expect(merged.goals.dimitra.value).toBe(88)
+  expect(merged.accountManagement).toBe(true)
+  expect(mergeRemote(merged, { ...remote, accountManagement: false }, []).accountManagement).toBe(false)
 })
 test('keeping a conflicting program creates a new immutable version and retains the latest local edit', async () => {
   await ensureWorkspace('coach', database)

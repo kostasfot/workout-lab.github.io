@@ -14,13 +14,14 @@ const History = lazy(() => import('./pages/History').then(m => ({ default: m.His
 const Progress = lazy(() => import('./pages/Progress').then(m => ({ default: m.Progress })))
 const Program = lazy(() => import('./pages/Program').then(m => ({ default: m.Program })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
+const Management = lazy(() => import('./pages/Management').then(m => ({ default: m.Management })))
 
 export default function App() { return <Boundary><HashRouter><AuthProvider><Application /></AuthProvider></HashRouter></Boundary> }
 function Application() {
   const { identity, loading } = useAuth()
   if (loading) return <div className="app-loading"><span className="loader" /><strong>Workout Lab</strong><span>Ετοιμάζουμε τον χώρο σας…</span></div>
   if (!identity || new URLSearchParams(location.search).has('recovery')) return <Login />
-  return <WorkspaceProvider key={`${identity.teamId}:${identity.userId}`}><TimerProvider><Routes><Route element={<Shell />}><Route index element={<Dashboard />} /><Route path="workout/:id" element={<Workout />} /><Route path="history" element={<History />} /><Route path="progress" element={<Progress />} /><Route path="program" element={<Program />} /><Route path="settings" element={<Settings />} /><Route path="*" element={<Navigate to="/" replace />} /></Route></Routes><UpdateNotice /></TimerProvider></WorkspaceProvider>
+  return <WorkspaceProvider key={`${identity.teamId}:${identity.userId}`}><TimerProvider><Routes><Route element={<Shell />}><Route index element={<Dashboard />} /><Route path="workout/:id" element={<Workout />} /><Route path="history" element={<History />} /><Route path="progress" element={<Progress />} /><Route path="program" element={<Program />} /><Route path="settings" element={<Settings />} /><Route path="management" element={identity.role === 'coach' ? <Management /> : <Navigate to="/" replace />} /><Route path="*" element={<Navigate to="/" replace />} /></Route></Routes><UpdateNotice /></TimerProvider></WorkspaceProvider>
 }
 function UpdateNotice() {
   const { data } = useWorkspace(), { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()

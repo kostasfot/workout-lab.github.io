@@ -74,6 +74,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } catch { setError('Δεν ήταν δυνατή η ανάκτηση της online έκδοσης. Δοκιμάστε όταν υπάρχει σύνδεση.') }
   }
   return <WorkspaceContext.Provider value={{ data: row?.data || emptyWorkspace(), loading: !row, pending, syncing, online, scope, error, clearError: () => setError(null), sync, resolve, edit: async fn => {
+    if (identity?.role === 'spectator') throw new Error('Ο λογαριασμός θεατή επιτρέπει μόνο προβολή.')
     try { await editWorkspace(scope, !local, workspace => {
       const changes = fn(workspace)
       for (const change of changes) if (isDeletion(change.payload)) {

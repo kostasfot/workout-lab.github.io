@@ -37,7 +37,7 @@ export interface Comparison { id: string; date: string; name: string; results: R
 export interface Workspace {
   program: Program; workouts: Workout[]; weighIns: WeighIn[]; goals: Record<AthleteId, Goal>;
   comparisons: Comparison[]; notes: CoachNote[];
-  historyDeletion?: boolean; workoutDiscard?: boolean; deletedRecords?: DeletedRecord[]
+  historyDeletion?: boolean; workoutDiscard?: boolean; accountManagement?: boolean; deletedRecords?: DeletedRecord[]
 }
 export interface DeletedRecord { kind: 'workout' | 'weighin'; id: string; revision: number }
 export interface Deletion { id: string; revision: number; deleted: true; discard?: true }

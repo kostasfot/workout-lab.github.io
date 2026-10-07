@@ -25,9 +25,11 @@ The development login includes an explicit device preview for testing without ac
 
 ## Connect Supabase
 
-Follow [the account and database guide](docs/supabase-setup.md). Apply all three migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. Existing installations only need the unapplied migrations. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
+Follow [the account and database guide](docs/supabase-setup.md). Apply all four migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. Existing installations only need the unapplied migrations. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
 
 The coach manages the program, workout records, private notes, and goals. Each athlete can read her own workout details, see both athletes' shared comparisons and weights, and add her own weigh-ins. Server permissions enforce these boundaries. Authentication alone does not assign membership; the bootstrap does that.
+
+The coach-only **Διαχείριση** tab adds spectator accounts, replaces a removed athlete login, deletes athlete/spectator accounts with confirmation, and sets new passwords. Spectators see both athletes' completed training and weight progress without editing access or private notes. Existing passwords cannot be viewed. Follow [account management activation](docs/account-management.md) to apply migration 004 and deploy the protected Supabase Edge Function; GitHub Pages publication alone cannot enable account administration. Account actions require internet and preserve training history when a login is deleted.
 
 ## Validate
 
@@ -38,7 +40,7 @@ npm run test:e2e
 npm run test:offline
 ```
 
-Unit tests cover station progression, program snapshots, account-scoped IndexedDB, synchronization revisions, and actual PostgreSQL policies/RPCs using PGlite. Browser tests cover paired logging, manual timers, weight entry, program edits, and four screen sizes. The offline check builds an isolated production PWA and verifies reloads, an unvisited lazy route, durable records, and timer recovery without a Supabase password.
+Unit tests cover station progression, program snapshots, account-scoped IndexedDB, synchronization revisions, account-management authorization and compensation, and actual PostgreSQL policies/RPCs using PGlite. Browser tests cover paired logging, manual timers, weight entry, program edits, account administration, read-only spectator access, and four screen sizes. The offline check builds an isolated production PWA and verifies reloads, an unvisited lazy route, durable records, and timer recovery without a Supabase password.
 
 Browser checks use `/usr/bin/chromium` when available. Otherwise install Chromium with `npx playwright install chromium`, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an existing executable.
 

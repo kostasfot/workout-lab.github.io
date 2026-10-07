@@ -5,18 +5,18 @@ import { emptyWorkspace } from '../../src/lib/program'
 import { allExpected, createWorkout, deleteLoggedSet, finishWorkout } from '../../src/lib/model'
 
 const database = new PGlite()
-const users = { coach: '10000000-0000-0000-0000-000000000001', anna: '10000000-0000-0000-0000-000000000002', dimitra: '10000000-0000-0000-0000-000000000003', outsider: '10000000-0000-0000-0000-000000000004' }
+const users = { coach: '10000000-0000-0000-0000-000000000001', anna: '10000000-0000-0000-0000-000000000002', dimitra: '10000000-0000-0000-0000-000000000003', outsider: '10000000-0000-0000-0000-000000000004', spectator: '10000000-0000-0000-0000-000000000005' }
 const team = '20000000-0000-0000-0000-000000000001'
 const state = emptyWorkspace(), workout = finishWorkout(createWorkout(state.program.routines[0], state.program.id))
 const asUser = async (user: keyof typeof users) => { await database.exec('reset role'); await database.query("select set_config('request.jwt.claim.sub', $1, false)", [users[user]]); await database.exec('set role authenticated') }
 const save = (kind: string, payload: unknown, revision = 0, op = crypto.randomUUID()) => database.query<{ save_record: number }>('select public.save_record($1, $2::jsonb, $3, $4::uuid)', [kind, JSON.stringify(payload), revision, op])
 const remove = (kind: string, id: string, revision = 0, op = crypto.randomUUID()) => database.query<{ delete_record: number }>('select public.delete_record($1, $2::jsonb, $3, $4::uuid)', [kind, JSON.stringify({ id }), revision, op])
 beforeAll(async () => {
-  await database.exec("create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;")
+  await database.exec("create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;")
   await database.exec(readFileSync('supabase/migrations/202610070001_workout_lab.sql', 'utf8'))
   for (const id of Object.values(users)) await database.query('insert into auth.users(id) values ($1)', [id])
   await database.query('insert into public.teams(id) values ($1)', [team])
-  for (const [name, id] of Object.entries(users).filter(([name]) => name !== 'outsider')) await database.query('insert into public.profiles(id,team_id,role,athlete_id) values ($1,$2,$3,$4)', [id, team, name === 'coach' ? 'coach' : 'athlete', name === 'coach' ? null : name])
+  for (const [name, id] of Object.entries(users).filter(([name]) => name !== 'outsider' && name !== 'spectator')) await database.query('insert into public.profiles(id,team_id,role,athlete_id) values ($1,$2,$3,$4)', [id, team, name === 'coach' ? 'coach' : 'athlete', name === 'coach' ? null : name])
   await asUser('coach')
   await save('program', state.program)
   await save('workout', workout)
@@ -28,6 +28,10 @@ beforeAll(async () => {
   const workoutMigration = readFileSync('supabase/migrations/202610070003_workout_editing_and_discard.sql', 'utf8')
   await database.exec(workoutMigration)
   await database.exec(workoutMigration)
+  const accountMigration = readFileSync('supabase/migrations/202610070004_account_management.sql', 'utf8')
+  await database.exec(accountMigration)
+  await database.exec(accountMigration)
+  await database.query("insert into public.profiles(id,team_id,role,display_name) values ($1,$2,'spectator','Πατέρας')", [users.spectator, team])
   await asUser('coach')
 })
 afterAll(async () => { await database.close() })
@@ -173,4 +177,62 @@ test('corrected workout dates reach shared comparisons even when the athlete was
   expect(remote.workouts.some(w => w.id === saved.id)).toBe(false)
   expect(remote.comparisons.find(w => w.id === saved.id)!.date).toBe('2026-10-02')
   await expect(save('workout', { ...saved, date: '2026-10-03' }, 2)).rejects.toThrow(/not_authorized/)
+})
+
+test('spectators see both athletes completed details, shared progress, and no active drafts or private notes', async () => {
+  await asUser('coach')
+  const active = createWorkout(state.program.routines[0], state.program.id)
+  await save('workout', active)
+  await asUser('spectator')
+  const remote = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  expect(remote.workouts.length).toBeGreaterThan(0)
+  expect(remote.workouts.every(w => w.status !== 'active')).toBe(true)
+  expect(remote.workouts.find(w => w.id === workout.id)!.participants).toEqual(['anna', 'dimitra'])
+  expect(new Set(Object.values(remote.workouts.find(w => w.id === workout.id)!.results).map(r => r.athlete))).toEqual(new Set(['anna', 'dimitra']))
+  expect(remote.weighIns.length).toBeGreaterThan(0)
+  expect(remote.goals.anna.value).toBe(92)
+  expect(remote.notes).toEqual([])
+  expect(remote.accountManagement).toBe(true)
+  expect((await database.query('select * from public.coach_notes')).rows).toEqual([])
+  expect((await database.query('select * from public.workouts')).rows).toEqual([])
+  expect((await database.query('select * from public.profiles')).rows.map(p => p.id)).toEqual([users.spectator])
+})
+
+test('spectators cannot mutate any history, program, measurements, notes, goals, or membership through direct APIs', async () => {
+  await asUser('spectator')
+  for (const kind of ['program', 'workout', 'weighin', 'goal', 'note']) {
+    await expect(save(kind, { id: crypto.randomUUID(), athlete: 'anna', date: '2026-10-01', weight: 100 })).rejects.toThrow(/not_authorized/)
+  }
+  await expect(remove('weighin', crypto.randomUUID())).rejects.toThrow(/not_authorized/)
+  await expect(remove('workout', workout.id, 1)).rejects.toThrow(/not_authorized/)
+  await expect(database.query("insert into public.profiles(id,team_id,role) values ($1,$2,'coach')", [users.outsider, team])).rejects.toThrow(/permission denied/)
+  await expect(database.query("update public.profiles set role='coach' where id=$1", [users.spectator])).rejects.toThrow(/permission denied/)
+  await expect(database.query('delete from public.profiles where id=$1', [users.spectator])).rejects.toThrow(/permission denied/)
+})
+
+test('account deletion preserves training and weights, removes membership and receipts, and allows replacement athlete login', async () => {
+  await asUser('anna')
+  const id = crypto.randomUUID()
+  await save('weighin', { id, athlete: 'anna', date: '2026-10-01', weight: 103 })
+  await asUser('coach')
+  const before = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  await database.exec('reset role')
+  await expect(database.query("insert into public.profiles(id,team_id,role,athlete_id) values ($1,$2,'spectator','anna')", [users.outsider, team])).rejects.toThrow(/profiles_check/)
+  await expect(database.query("insert into public.profiles(id,team_id,role,athlete_id) values ($1,$2,'athlete','anna')", [users.outsider, team])).rejects.toThrow(/unique constraint/)
+  await database.query('delete from auth.users where id=$1', [users.anna])
+  expect((await database.query('select * from public.profiles where id=$1', [users.anna])).rows).toEqual([])
+  expect((await database.query('select * from public.mutation_receipts where user_id=$1', [users.anna])).rows).toEqual([])
+  expect((await database.query('select created_by from public.weighins where id=$1', [id])).rows[0].created_by).toBeNull()
+  await asUser('coach')
+  const after = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  expect(after.weighIns).toEqual(before.weighIns)
+  expect(after.workouts).toEqual(before.workouts)
+  expect(after.notes).toEqual(before.notes)
+  await asUser('anna'); await expect(database.query('select public.get_workspace()')).rejects.toThrow(/not_authorized/)
+  await database.exec('reset role; set role service_role')
+  await database.query("insert into public.profiles(id,team_id,role,athlete_id,display_name) values ($1,$2,'athlete','anna','Άννα')", [users.outsider, team])
+  await asUser('outsider')
+  const replacement = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  expect(replacement.weighIns.some(w => w.id === id)).toBe(true)
+  expect(replacement.workouts.every(w => w.participants.includes('anna'))).toBe(true)
 })

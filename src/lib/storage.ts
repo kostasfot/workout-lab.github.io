@@ -92,6 +92,7 @@ export function mergeRemote(local: Workspace, remote: Workspace, pending: Queued
     },
     historyDeletion: remote.historyDeletion,
     workoutDiscard: remote.workoutDiscard,
+    accountManagement: remote.accountManagement,
     deletedRecords: remote.deletedRecords || [],
   }
 }

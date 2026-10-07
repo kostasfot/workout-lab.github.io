@@ -50,7 +50,7 @@ Coach can delete individual logged sets or whole saved workouts with confirmatio
 
 ## Accounts and progress
 
-There are three private email/password logins in one group. Coach edits the training program, both workout logs, goals, weigh-in corrections, and private notes. Athletes read their own detailed workouts, see both athletes' shared workout comparisons and body-weight progress, and add their own weigh-ins. They cannot edit workouts, program, goals, or the other athlete's measurements. Private coach notes are kept separately and never returned to athletes.
+The coach and two athletes have private email/password logins in one group; additional spectator logins are supported. Coach edits the training program, both workout logs, goals, weigh-in corrections, and private notes. Athletes read their own detailed workouts, see both athletes' shared workout comparisons and body-weight progress, and add their own weigh-ins. They cannot edit workouts, program, goals, or the other athlete's measurements. Private coach notes are kept separately and never returned to athletes or spectators. Spectators can read both athletes’ completed detailed workouts, comparisons, weights, and goals, with all training mutations denied at both the interface and database.
 
 Weights and goals begin empty. Progress charts use actual measurements, with absolute kilograms and percentage change from each athlete's first recorded measurement. Coach enters real goals when available.
 
@@ -69,3 +69,5 @@ Program edits create a new version for future workouts. Existing active and comp
 ## Implementation and verification status
 
 The interface, offline store, migrations, and bootstrap are implemented. The coach reported that the live application works and supplied successful SQL checks for the base schema, history deletion, discard capability, and completed-workout discard guard after applying migration 003. Workout selection and signed weight adjustments use that existing database setup. Authenticated browser tests use test responses, and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation; current checks are recorded in the deployment guide.
+
+The coach-only management tab lists team account names, emails, and roles. It creates read-only spectators or replacement accounts for a vacant existing athlete identity, confirms account deletion, and sets new passwords. Existing passwords cannot be read. Coach logins are protected. Account actions execute online through the authenticated Supabase Edge Function; credentials never enter the offline queue. Migration 004 preserves weigh-ins/history when an auth user is deleted. Migration 004 and the function are implemented and locally tested; live activation requires the Supabase deployment described in the account management guide.

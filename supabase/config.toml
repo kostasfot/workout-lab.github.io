@@ -1,0 +1,6 @@
+project_id = "workout-lab-backend"
+
+[functions.manage-users]
+# The handler verifies the bearer token with auth.getUser on every request.
+# This also supports projects using the newer publishable keys / JWT signing keys.
+verify_jwt = false

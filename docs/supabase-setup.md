@@ -1,6 +1,6 @@
 # Supabase database and accounts
 
-Project: **workout-lab-backend** (`ntrwfapkyqbxbchwowcy`). Your GitHub login into the Supabase dashboard administers the project; the app has three separate email/password accounts.
+Project: **workout-lab-backend** (`ntrwfapkyqbxbchwowcy`). Your GitHub login into the Supabase dashboard administers the project; the app has separate coach and athlete email/password accounts, with additional spectator accounts available after management activation.
 
 ## 1. Apply the database migration
 
@@ -43,7 +43,7 @@ Expect three rows: one `coach` with no athlete ID, one `athlete` with `anna`, an
 
 ## 4. Connect and test the app
 
-The project URL and publishable key are already in the current environment's ignored `.env.local`. In a new environment or hosting build, provide `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` through its environment settings, then restart or rebuild the app. No service-role key is needed.
+The project URL and publishable key are already in the current environment's ignored `.env.local`. In a new environment or hosting build, provide `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` through its environment settings, then restart or rebuild the app. No service-role key is needed in the browser. Account management uses the server-only key supplied automatically to the Supabase Edge Function.
 
 Sign in as the coach first. Starting the first workout or saving a program edit publishes the initial program to the group. A freshly bootstrapped group has no imported measurements, goals, or workout history.
 
@@ -64,7 +64,7 @@ Supabase's default email service has delivery limits and recipient restrictions.
 
 ## 6. Enable coach history deletion
 
-For an existing project, run [202610070002_history_deletion.sql](../supabase/migrations/202610070002_history_deletion.sql) in a new **SQL Editor** query after the initial migration. This update preserves existing accounts and history and can be run again safely. New installations should apply all three migrations in order before connecting the app.
+For an existing project, run [202610070002_history_deletion.sql](../supabase/migrations/202610070002_history_deletion.sql) in a new **SQL Editor** query after the initial migration. This update preserves existing accounts and history and can be run again safely. New installations should apply all four migrations in order before connecting the app.
 
 Refresh the app and allow its next cloud sync to finish. The coach can then delete a weigh-in, an individual logged set, or a whole saved workout using the trash controls and confirmation dialog. Whole-workout deletion removes its results, comparisons, and private notes. Removing one set retains the workout and the other athlete's results and marks the workout partial when required.
 
@@ -77,6 +77,10 @@ In **SQL Editor → New query**, paste the complete contents of [202610070003_wo
 Refresh the app and let cloud sync finish. The coach's **Διακοπή** button then becomes available in a live workout. Confirmation removes the active draft, its notes, and its timers without adding a history entry. Selecting another routine offers **Συνέχεια τρέχουσας** or **Διακοπή και νέα προπόνηση**. Draft discard requires an explicit flag and the current revision; a stale request cannot discard a workout that has since been completed.
 
 In **Ιστορικό**, the coach can open **Επεξεργασία προπόνησης**, change the training date and each athlete's recorded values/status, then choose **Αποθήκευση αλλαγών**. The prescribed program and original start/completion timestamps remain preserved. Saved-result editing and the quick reps/seconds controls work with the existing storage; this migration makes shared comparison dates use the corrected date and enables cloud draft discard. Until it is detected, discard controls stay disabled.
+
+## 8. Enable account management and spectators
+
+Apply migration 004 and deploy the **manage-users** Edge Function using the [step-by-step account management guide](account-management.md). The coach can then create spectators, replace an athlete login, delete athlete/spectator accounts, and set a new password. The roster remains Άννα and Δήμητρα. Spectators have read-only access to both athletes' saved training and progress, excluding private notes. Existing passwords cannot be displayed. Account operations execute online in Supabase; they are not offline mutations.
 
 ## Troubleshooting
 
