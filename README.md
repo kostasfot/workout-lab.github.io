@@ -1,0 +1,61 @@
+# Workout Lab
+
+A Greek training dashboard for a coach, Άννα, and Δήμητρα. Built for an Android tablet in either orientation, with desktop and phone layouts, light/dark themes, and offline recording.
+
+The workbook's second sheet supplies three strength routines. Both athletes start opposite exercises, swap without resting, then take a manually started rest. Dumbbell loads are kilograms per dumbbell. TRX curls and triceps extensions have separate entries; slash alternatives are selectable. Weight measurements and goals start empty.
+
+## Run locally
+
+Use Node.js 24 and npm. From this repository:
+
+```sh
+npm ci
+cp -n .env.example .env.local
+```
+
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local` to the project's URL and publishable key. These values are public browser configuration. Administrative/service-role keys must never be used in the frontend. `.env.local` is ignored by Git.
+
+```sh
+npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
+```
+
+The development login includes an explicit device preview for testing without accounts. Preview data stays on that device in a separate workspace; it is not imported into a cloud account. A configured production build requires login. Restart Vite after changing configuration.
+
+## Connect Supabase
+
+Follow [the account and database guide](docs/supabase-setup.md). Apply the migration, create three confirmed email/password users, and run the bootstrap once to assign their roles. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
+
+The coach manages the program, workout records, private notes, and goals. Each athlete can read her own workout details, see both athletes' shared comparisons and weights, and add her own weigh-ins. Server permissions enforce these boundaries. Authentication alone does not assign membership; the bootstrap does that.
+
+## Validate
+
+```sh
+npm test
+npm run build
+npm run test:e2e
+npm run test:offline
+```
+
+Unit tests cover station progression, program snapshots, account-scoped IndexedDB, synchronization revisions, and actual PostgreSQL policies/RPCs using PGlite. Browser tests cover paired logging, manual timers, weight entry, program edits, and four screen sizes. The offline check builds an isolated production PWA and verifies reloads, an unvisited lazy route, durable records, and timer recovery without a Supabase password.
+
+Browser checks use `/usr/bin/chromium` when available. Otherwise install Chromium with `npx playwright install chromium`, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an existing executable.
+
+## Build and host
+
+Set `VITE_BASE_PATH=/workout-lab.github.io/` for the GitHub Pages project site, or `/` for a root-domain deployment. Supply the two Supabase variables when building; Vite embeds public configuration at build time.
+
+```sh
+npm run build
+```
+
+The output is `dist/`. Use HTTPS hosting so Android Chrome can install the PWA. Hash routes work with static hosting. The CI workflow validates code; the separate [publication workflow](.github/workflows/deploy.yml) runs only when manually triggered. It requires both Supabase repository variables and does not fall back to local preview. Follow [the GitHub Pages instructions](docs/deployment.md). Add the hosted site's URL to Supabase Authentication's redirect configuration before using password recovery.
+
+## Offline behavior
+
+Open the app online and sign in on each device before using it offline. Production caches the app, fonts, and page bundles; private API responses are not stored in the service-worker cache. Entries are saved in account-scoped IndexedDB and queued for cloud sync. The UI distinguishes local preview, offline/pending changes, synchronized records, and conflicts. Resolve conflicting versions from Settings; a cloud revision is not silently overwritten.
+
+Timers use saved deadlines and start only when pressed. Closing the popup or reloading does not reset a running timer. Sound requires the app to be active; a background operating-system alarm is not provided. Updates are deferred during an active workout. Finished workouts retain the program snapshot used at the time. Settings offers a JSON backup; workout details offer CSV export.
+
+## Implementation
+
+React, TypeScript, Vite, Tailwind CSS, Radix UI, and Recharts form the interface. Dexie handles local persistence; Supabase provides email/password authentication, PostgreSQL, row-level security, and revision-aware RPC synchronization. The PWA uses Workbox. See [the agreed requirements](docs/product-plan.md) for the source interpretation and scope.

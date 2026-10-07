@@ -1,0 +1,49 @@
+{
+  "name": "workout-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:offline": "node scripts/verify-offline.mjs",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@radix-ui/react-dialog": "1.2.0",
+    "@radix-ui/react-tabs": "1.1.22",
+    "@supabase/supabase-js": "2.117.2",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "dexie": "4.4.6",
+    "dexie-react-hooks": "4.4.0",
+    "lucide-react": "1.52.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "7.18.4",
+    "recharts": "3.10.1",
+    "tailwind-merge": "3.7.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "fake-indexeddb": "6.2.5",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.3",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "5.0.3"
+  }
+}

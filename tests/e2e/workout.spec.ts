@@ -1,0 +1,162 @@
+import { test, expect, type Page } from '@playwright/test'
+
+async function open(page: Page) {
+  await page.goto('/')
+  const button = page.getByRole('button', { name: /Προεπισκόπηση στη συσκευή|Άνοιγμα εφαρμογής/ })
+  await button.click()
+  await expect(page.getByRole('heading', { name: 'Καλώς ήρθατε στο Lab.' })).toBeVisible()
+}
+async function start(page: Page) {
+  await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση' }).click()
+  await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
+  await expect(page.getByTestId('panel-anna')).toBeVisible()
+}
+async function log(page: Page, athlete: 'anna' | 'dimitra', value: string, weight?: string) {
+  const panel = page.getByTestId(`panel-${athlete}`)
+  if (weight) await panel.getByLabel(/^Βάρος/).fill(weight)
+  await panel.getByLabel(/^Επαναλήψεις/).fill(value)
+  await panel.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+  await expect(panel.getByText('Έγινε', { exact: true })).toBeVisible()
+}
+test('paired entries, manual swaps/timers, refresh recovery, and partial history', async ({ page, context }) => {
+  await open(page); await start(page)
+  await log(page, 'anna', '10', '6'); await log(page, 'dimitra', '12')
+  await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
+  await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'TRX Rows' })).toBeVisible()
+  await expect(page.getByTestId('panel-dimitra').getByRole('heading', { name: 'Goblet Squats' })).toBeVisible()
+  await log(page, 'anna', '11'); await log(page, 'dimitra', '11', '8')
+  await page.getByRole('button', { name: 'Επόμενος γύρος' }).click()
+  await expect(page.getByRole('heading', { name: 'Γύρος 2 / 3' })).toBeVisible()
+  await expect(page.getByTestId('panel-anna').getByLabel(/^Βάρος/)).toHaveValue('')
+  await page.getByRole('button', { name: 'Άνοιγμα χρονομέτρου' }).click()
+  await expect(page.locator('.timer-job')).toHaveCount(0)
+  await page.getByLabel('Διάρκεια διαλείμματος σε δευτερόλεπτα').fill('1')
+  await page.getByRole('button', { name: 'Έναρξη', exact: true }).click()
+  await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
+  await expect(page.locator('.timer-fab')).toContainText('00:00')
+  await expect(page.getByRole('heading', { name: 'Γύρος 2 / 3' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeDisabled()
+  await context.setOffline(true)
+  await log(page, 'anna', '9', '7')
+  await context.setOffline(false); await page.reload()
+  await expect(page.getByRole('heading', { name: 'Γύρος 2 / 3' })).toBeVisible()
+  await expect(page.getByTestId('panel-anna').getByLabel(/^Βάρος/)).toHaveValue('7')
+  await page.getByRole('button', { name: 'Ολοκλήρωση', exact: true }).click()
+  await page.getByRole('button', { name: 'Αποθήκευση & τέλος' }).click()
+  await expect(page).toHaveURL(/#\/history\?session=/)
+  const detail = page.getByRole('dialog')
+  await expect(detail.getByRole('heading', { name: 'Προπόνηση 1', exact: true })).toBeVisible()
+  await expect(detail.getByText('6 kg / αλτήρα · 10 επ.', { exact: true })).toBeVisible()
+  await expect(detail.getByText('8 kg / αλτήρα · 11 επ.', { exact: true })).toBeVisible()
+})
+test('empty weight records, independent measurements and real goals', async ({ page }) => {
+  await open(page); await page.goto('/#/progress')
+  await expect(page.getByText('Χωρίς μέτρηση ακόμη')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Νέα μέτρηση', exact: true }).click()
+  let modal = page.getByRole('dialog')
+  await modal.getByLabel('Βάρος (kg)', { exact: true }).fill('103.4')
+  await modal.getByRole('button', { name: 'Αποθήκευση μέτρησης' }).click()
+  await expect(page.locator('.weight-card.anna .current-weight')).toContainText('103,4')
+  await expect(page.locator('.weight-card.dimitra .current-weight')).toContainText('—')
+  await page.getByRole('button', { name: 'Ορισμός στόχου Άννα' }).click()
+  modal = page.getByRole('dialog'); await modal.getByLabel('Στόχος βάρους (kg)').fill('95')
+  await modal.getByRole('button', { name: 'Αποθήκευση στόχου' }).click()
+  await expect(page.locator('.weight-card.anna .goal-line')).toContainText('95 kg')
+  await page.reload()
+  await expect(page.locator('.weight-card.anna .current-weight')).toContainText('103,4')
+  await expect(page.locator('.weight-card.anna .goal-line')).toContainText('95 kg')
+})
+test('program edits apply to future workouts and layouts remain usable', async ({ page }, info) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
+  await open(page); await start(page)
+  await page.goto('/#/program')
+  await page.getByRole('button', { name: 'Επεξεργασία', exact: true }).click()
+  const modal = page.getByRole('dialog')
+  await modal.getByLabel('Γύροι', { exact: true }).first().fill('4')
+  await modal.getByRole('button', { name: 'Αποθήκευση νέας έκδοσης' }).click()
+  await expect(page.locator('.program-station').first()).toContainText('4 γύροι')
+  await page.locator('.resume-strip').click()
+  await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3' })).toBeVisible()
+  const boxes = await Promise.all(['anna', 'dimitra'].map(a => page.getByTestId(`panel-${a}`).boundingBox()))
+  expect(boxes[0]!.x).toBeLessThan(boxes[1]!.x)
+  expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2)
+  for (const path of ['/', '/progress', '/program', '/history', '/settings']) {
+    await page.goto(`/#${path}`)
+    await expect(page.locator('main')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.getByRole('button', { name: 'Σκοτεινό θέμα' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.goto('/#/')
+  await page.screenshot({ path: `test-results/dashboard-${info.project.name}.png`, fullPage: true })
+  expect(errors).toEqual([])
+})
+
+test('timed routine preserves actual seconds and completes all station rounds', async ({ page }) => {
+  await open(page)
+  await page.getByRole('button', { name: 'Έναρξη Προπόνηση 3', exact: true }).click()
+  await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
+  await page.getByRole('button', { name: 'Άνοιγμα χρονομέτρου' }).click()
+  await expect(page.getByLabel('Διάρκεια διαλείμματος σε δευτερόλεπτα')).toHaveValue('20')
+  await page.getByRole('button', { name: 'Άσκηση', exact: true }).click()
+  await expect(page.locator('.timer-job')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Έναρξη και για τις δύο' }).click()
+  await expect(page.locator('.timer-job')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
+  await expect(page.getByTestId('panel-anna').getByLabel(/^Διάρκεια/)).toHaveValue('')
+  for (let pair = 0; pair < 12; pair++) {
+    for (const athlete of ['anna', 'dimitra']) {
+      const panel = page.getByTestId(`panel-${athlete}`)
+      if (pair === 6 && athlete === 'dimitra') {
+        await panel.getByLabel('Επιλογή άσκησης').selectOption({ label: 'Russian Twists' })
+        await expect(panel.getByRole('heading', { name: 'Russian Twists', exact: true })).toBeVisible()
+      }
+      const weight = panel.getByLabel(/^Βάρος/)
+      if (await weight.count()) await weight.fill('6')
+      await panel.getByLabel(/^Διάρκεια/).fill('35')
+      await panel.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+      await expect(panel.getByText('Έγινε', { exact: true })).toBeVisible()
+    }
+    await page.locator('.workout-navigation').getByRole('button').last().click()
+    if (pair < 11) {
+      const nextPair = pair + 1
+      await expect(page.getByTestId('panel-anna').getByText(`Άσκηση ${nextPair % 2 + 1} · Σετ ${Math.floor((nextPair % 6) / 2) + 1}`, { exact: true })).toBeVisible()
+    }
+  }
+  await page.getByRole('button', { name: 'Αποθήκευση & τέλος' }).click()
+  const detail = page.getByRole('dialog')
+  await expect(detail.getByText('Ολοκληρώθηκε', { exact: true })).toBeVisible()
+  await expect(detail.locator('.result-history-row')).toHaveCount(24)
+  await expect(detail.getByText('Russian Twists', { exact: true })).toHaveCount(3)
+  await expect(detail.getByText('35 δευτ.', { exact: true })).toHaveCount(12)
+})
+
+test('both TRX movements must be logged before swapping', async ({ page }) => {
+  await open(page)
+  await page.getByRole('button', { name: 'Έναρξη Προπόνηση 2', exact: true }).click()
+  await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
+  // Explicitly skip the first two stations to exercise the third station's UI.
+  for (let pair = 0; pair < 12; pair++) {
+    for (const athlete of ['anna', 'dimitra']) {
+      const panel = page.getByTestId(`panel-${athlete}`)
+      await panel.getByRole('button', { name: 'Παράλειψη', exact: true }).click()
+      await expect(panel.getByText('Παράλειψη', { exact: true })).toBeVisible()
+    }
+    await page.locator('.workout-navigation').getByRole('button').last().click()
+  }
+  await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'Seated Shoulder Press' })).toBeVisible()
+  await log(page, 'anna', '10', '4')
+  const panel = page.getByTestId('panel-dimitra')
+  const curls = panel.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Biceps Curls' }) })
+  const triceps = panel.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Triceps Extensions' }) })
+  await curls.getByLabel(/^Επαναλήψεις/).fill('10')
+  await curls.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+  await expect(curls.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeDisabled()
+  await triceps.getByLabel(/^Επαναλήψεις/).fill('11')
+  await triceps.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
+  await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'TRX Biceps Curls' })).toBeVisible()
+  await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'TRX Triceps Extensions' })).toBeVisible()
+})

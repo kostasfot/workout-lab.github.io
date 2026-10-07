@@ -1,0 +1,81 @@
+import { spawn } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { existsSync } from 'node:fs'
+import { chromium, expect } from '@playwright/test'
+
+// An isolated production build deliberately uses local mode to verify the PWA
+// without a Supabase password or changing the real project's configuration.
+const root = dirname(dirname(fileURLToPath(import.meta.url)))
+const output = await mkdtemp(join(tmpdir(), 'workout-lab-offline-'))
+const base = '/workout-lab.github.io/'
+const port = 4174
+const url = `http://127.0.0.1:${port}${base}`
+const env = { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_PUBLISHABLE_KEY: '', VITE_BASE_PATH: base }
+let server, browser
+try {
+  await new Promise((resolve, reject) => {
+    const build = spawn('npm', ['run', 'build', '--', '--outDir', output], { cwd: root, env, stdio: 'inherit' })
+    build.on('error', reject)
+    build.on('exit', code => code === 0 ? resolve() : reject(new Error(`Build failed (${code})`)))
+  })
+  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--outDir', output, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, env, stdio: 'pipe' })
+  let failure
+  server.on('error', error => { failure = error })
+  server.on('exit', code => { failure = new Error(`Preview stopped (${code})`) })
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (failure) throw failure
+    try { if ((await fetch(url)).ok) break } catch { /* startup in progress */ }
+    if (attempt === 59) throw new Error('Preview did not start')
+    await new Promise(resolve => setTimeout(resolve, 250))
+  }
+  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), args: ['--no-sandbox'] })
+  const context = await browser.newContext({ viewport: { width: 1024, height: 768 } })
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto(url)
+  await page.getByRole('button', { name: 'Άνοιγμα εφαρμογής', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Καλώς ήρθατε στο Lab.' })).toBeVisible()
+  await page.evaluate(async () => { await navigator.serviceWorker.ready })
+  // Prompt-based registration takes control on the next navigation.
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση' }).click()
+  await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
+  const anna = page.getByTestId('panel-anna')
+  await anna.getByLabel(/^Βάρος/).fill('6')
+  await anna.getByLabel(/^Επαναλήψεις/).fill('10')
+  await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+  await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Άνοιγμα χρονομέτρου' }).click()
+  await page.getByRole('button', { name: 'Έναρξη', exact: true }).click()
+  await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
+  await context.setOffline(true)
+  await page.reload()
+  await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('6')
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
+  await expect(page.locator('.timer-fab')).toContainText(/00:[0-5]\d/)
+  // This route's lazy chunk has never been opened online in this context.
+  await page.goto(`${url}#/progress`)
+  await page.getByRole('button', { name: 'Νέα μέτρηση', exact: true }).click()
+  await page.getByRole('dialog').getByLabel('Βάρος (kg)', { exact: true }).fill('103.4')
+  await page.getByRole('button', { name: 'Αποθήκευση μέτρησης' }).click()
+  await expect(page.locator('.weight-card.anna .current-weight')).toContainText('103,4')
+  await page.reload()
+  await expect(page.locator('.weight-card.anna .current-weight')).toContainText('103,4')
+  await page.locator('.resume-strip').click()
+  await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('6')
+  await page.screenshot({ path: join(root, 'test-results', 'offline-workout-tablet.png'), fullPage: true })
+  expect(errors).toEqual([])
+  console.log('PASS: production PWA offline reload, cached lazy route, durable workout/weight entries, and persisted running timer.')
+} finally {
+  if (browser) await browser.close()
+  if (server) {
+    const stopped = new Promise(resolve => server.once('exit', resolve))
+    if (server.exitCode === null) { server.kill(); await stopped }
+  }
+  await rm(output, { recursive: true, force: true })
+}
