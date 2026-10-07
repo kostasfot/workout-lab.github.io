@@ -48,7 +48,7 @@ Set `VITE_BASE_PATH=/workout-lab.github.io/` for the GitHub Pages project site, 
 npm run build
 ```
 
-The output is `dist/`. Use HTTPS hosting so Android Chrome can install the PWA. Hash routes work with static hosting. The CI workflow validates code; the separate [publication workflow](.github/workflows/deploy.yml) runs only when manually triggered. It requires both Supabase repository variables and does not fall back to local preview. Follow [the GitHub Pages instructions](docs/deployment.md). Add the hosted site's URL to Supabase Authentication's redirect configuration before using password recovery.
+The output is `dist/`. The live app is at **https://kostasfot.github.io/workout-lab.github.io/**, served from the `gh-pages` branch with HTTPS enforced. Hash routes work with static hosting. After committing and pushing source changes to `main`, run `npm run publish:pages` to build and update that branch. It requires the publishable cloud configuration and refuses to overwrite a newer concurrent publication. See [the deployment guide](docs/deployment.md) for the current setup and the alternative manual Actions workflow. Add the hosted site's URL to Supabase Authentication's redirect configuration before using password recovery.
 
 ## Offline behavior
 
