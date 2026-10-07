@@ -4,6 +4,8 @@ A Greek training dashboard for a coach, Άννα, and Δήμητρα. Built for 
 
 The workbook's second sheet supplies three strength routines. Both athletes start opposite exercises, swap without resting, then take a manually started rest. Dumbbell loads are kilograms per dumbbell. TRX curls and triceps extensions have separate entries; slash alternatives are selectable. Weight measurements and goals start empty.
 
+Live workout loads have **+1.25 kg** and **+2.5 kg** buttons for each athlete and exercise, preserving exact decimal loads. The coach can delete individual weigh-ins, logged sets, and whole saved workouts with confirmation; these changes also work offline and sync on reconnection. Apply the history-deletion database update described in the Supabase guide to enable cloud deletion.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this repository:
@@ -23,7 +25,7 @@ The development login includes an explicit device preview for testing without ac
 
 ## Connect Supabase
 
-Follow [the account and database guide](docs/supabase-setup.md). Apply the migration, create three confirmed email/password users, and run the bootstrap once to assign their roles. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
+Follow [the account and database guide](docs/supabase-setup.md). Apply both migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
 
 The coach manages the program, workout records, private notes, and goals. Each athlete can read her own workout details, see both athletes' shared comparisons and weights, and add her own weigh-ins. Server permissions enforce these boundaries. Authentication alone does not assign membership; the bootstrap does that.
 

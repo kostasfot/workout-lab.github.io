@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, ensureWorkspace, editWorkspace, acknowledge, rebaseConflict, mergeRemote, type QueuedMutation } from '../lib/storage'
+import { db, ensureWorkspace, editWorkspace, acknowledge, rebaseConflict, mergeRemote, deletedRemotely, type QueuedMutation } from '../lib/storage'
 import { cloud, identityScope } from '../lib/cloud'
 import { useAuth } from './Auth'
 import { emptyWorkspace } from '../lib/program'
-import type { MutationKind, MutationPayload, Workspace } from '../lib/model'
+import { isDeletion, type MutationKind, type MutationPayload, type Workspace } from '../lib/model'
 
 interface WorkspaceValue {
   data: Workspace; loading: boolean; pending: QueuedMutation[]; syncing: boolean; online: boolean;
@@ -29,6 +29,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const remote = await fetchRemote()
     await db.transaction('rw', db.workspaces, db.mutations, async () => {
       const saved = await db.workspaces.get(scope), queued = await db.mutations.where('scope').equals(scope).toArray()
+      await db.mutations.bulkDelete(queued.filter(item => deletedRemotely(remote, item)).map(item => item.key))
       await db.workspaces.put({ scope, data: mergeRemote(saved?.data || emptyWorkspace(), remote, queued) })
     })
   }
@@ -40,9 +41,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       queued.sort((a, b) => (a.kind === 'program' ? -1 : 0) - (b.kind === 'program' ? -1 : 0))
       for (const item of queued) {
         if (item.conflict) continue
-        const { data, error: saveError } = await cloud.rpc('save_record', { kind: item.kind, payload: item.payload, expected_revision: item.baseRevision, operation_id: item.operationId })
+        // A workout deletion also cancels queued private notes. Do not send a
+        // superseded mutation from the snapshot taken at the start of sync.
+        if ((await db.mutations.get(item.key))?.operationId !== item.operationId) continue
+        const { data, error: saveError } = await cloud.rpc(isDeletion(item.payload) ? 'delete_record' : 'save_record', { kind: item.kind, payload: item.payload, expected_revision: item.baseRevision, operation_id: item.operationId })
         if (saveError) {
-          if (saveError.message.includes('revision_conflict')) await db.mutations.update(item.key, { conflict: true })
+          if (/revision_conflict|record_deleted/.test(saveError.message)) await db.mutations.update(item.key, { conflict: true })
           else { await db.mutations.update(item.key, { error: 'Η αλλαγή αποθηκεύτηκε τοπικά. Ο συγχρονισμός θα επαναληφθεί.' }); throw saveError }
         } else await acknowledge(scope, item, data as number)
       }
@@ -62,6 +66,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const resolve = async (item: QueuedMutation, keepLocal: boolean) => {
     try {
       const remote = await fetchRemote()
+      if (deletedRemotely(remote, item)) { await db.mutations.delete(item.key); await pull(); setError(null); return }
       const record: MutationPayload | undefined = item.kind === 'program' ? remote.program : item.kind === 'workout' ? remote.workouts.find(w => w.id === item.entityId) : item.kind === 'weighin' ? remote.weighIns.find(w => w.id === item.entityId) : item.kind === 'note' ? remote.notes.find(w => w.id === item.entityId) : remote.goals[item.entityId as 'anna' | 'dimitra']
       if (keepLocal) await rebaseConflict(scope, item.key, record?.revision || 0)
       else await db.mutations.delete(item.key)
@@ -69,7 +74,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } catch { setError('Δεν ήταν δυνατή η ανάκτηση της online έκδοσης. Δοκιμάστε όταν υπάρχει σύνδεση.') }
   }
   return <WorkspaceContext.Provider value={{ data: row?.data || emptyWorkspace(), loading: !row, pending, syncing, online, scope, error, clearError: () => setError(null), sync, resolve, edit: async fn => {
-    try { await editWorkspace(scope, !local, fn); setError(null) } catch (err) { const message = err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.'; setError(message); throw err }
+    try { await editWorkspace(scope, !local, workspace => {
+      const changes = fn(workspace)
+      if (changes.some(change => isDeletion(change.payload)) && (identity?.role !== 'coach' || (!local && !workspace.historyDeletion))) throw new Error('Η διαγραφή ιστορικού δεν έχει ενεργοποιηθεί για αυτόν τον λογαριασμό.')
+      return changes
+    }); setError(null) } catch (err) { const message = err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.'; setError(message); throw err }
   } }}>{children}</WorkspaceContext.Provider>
 }
 export const useWorkspace = () => useContext(WorkspaceContext)

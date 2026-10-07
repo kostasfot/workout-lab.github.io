@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { X, ArrowUpRight } from 'lucide-react'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
+import { X, ArrowUpRight, Trash2 } from 'lucide-react'
+import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react'
 import { cn } from '../lib/utils'
 
 const buttonStyles = cva('button', { variants: { variant: { primary: 'button-primary', secondary: 'button-secondary', ghost: 'button-ghost', danger: 'button-danger' }, size: { default: '', small: 'button-small', icon: 'button-icon' } }, defaultVariants: { variant: 'primary', size: 'default' } })
@@ -14,6 +14,15 @@ export function Modal({ open, onOpenChange, title, description, children, wide =
   return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="modal-overlay" /><Dialog.Content className={cn('modal', wide && 'modal-wide')} {...(!description ? { 'aria-describedby': undefined } : {})}>
     <div className="modal-heading"><div><Dialog.Title>{title}</Dialog.Title>{description && <Dialog.Description>{description}</Dialog.Description>}</div><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Κλείσιμο"><X size={20} /></Button></Dialog.Close></div>{children}
   </Dialog.Content></Dialog.Portal></Dialog.Root>
+}
+export function DeleteConfirmation({ open, onOpenChange, title, description, onConfirm }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string; onConfirm: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false), [error, setError] = useState('')
+  useEffect(() => { if (open) setError('') }, [open])
+  return <Modal open={open} onOpenChange={value => { if (!busy) onOpenChange(value) }} title={title} description={description}>
+    <p className="muted small">Η διαγραφή δεν αναιρείται. Η αλλαγή αποθηκεύεται στη συσκευή και συγχρονίζεται όταν υπάρχει σύνδεση.</p>
+    {error && <p className="form-message" role="alert">{error}</p>}
+    <div className="modal-actions"><Button variant="secondary" disabled={busy} onClick={() => onOpenChange(false)}>Ακύρωση</Button><Button variant="danger" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await onConfirm(); onOpenChange(false) } catch (err) { setError(err instanceof Error ? err.message : 'Η διαγραφή δεν ολοκληρώθηκε. Δοκιμάστε ξανά.') } finally { setBusy(false) } }}><Trash2 size={16} />{busy ? 'Διαγραφή…' : 'Διαγραφή'}</Button></div>
+  </Modal>
 }
 export function SectionHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) { return <div className="section-heading"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</div> }
 export function EmptyState({ icon, title, description, action }: { icon: ReactNode; title: string; description: string; action?: ReactNode }) { return <div className="empty-state"><div className="empty-icon">{icon}</div><h3>{title}</h3><p>{description}</p>{action}</div> }

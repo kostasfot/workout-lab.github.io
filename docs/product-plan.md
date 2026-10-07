@@ -34,11 +34,15 @@ Each movement must be recorded or explicitly skipped before advancing. The two T
 
 Loads mean **kg per dumbbell**. Unilateral reps mean per leg/arm, with an optional different count for the other side. Actual results are separate from prescribed targets. Starting, stopping, or finishing a timer does not fill a result or advance the workout. New sets start with empty actual values and show previous results as suggestions.
 
+Each loaded exercise has **+1.25 kg** and **+2.5 kg** controls. They add to that athlete's entered load, or start from zero when it is empty, and preserve quarter-kilogram precision. Recorded sets lock these controls until the coach reopens the record for editing.
+
 ## Timers and completion
 
 The persistent timer button opens a popup for configurable rest or prescribed work timers. Every timer starts manually. Closing the popup preserves it. Pausing and resetting are explicit. Minimal rest has no preset. Each athlete can have a work timer; the coach can start both together.
 
 Completing a workout saves its date, participants, program snapshot, selected movements, rounds, actual values, and skipped results. Early completion creates a partial record. Coach can correct completed results. CSV export is available from the details; Settings offers an account-scoped JSON backup.
+
+Coach can delete individual logged sets or whole saved workouts with confirmation. Removing a set leaves the other records intact and updates completion status and comparisons. Whole-workout deletion also removes its private notes and comparisons. Active workouts are not deleted through history.
 
 ## Accounts and progress
 
@@ -46,12 +50,16 @@ There are three private email/password logins in one group. Coach edits the trai
 
 Weights and goals begin empty. Progress charts use actual measurements, with absolute kilograms and percentage change from each athlete's first recorded measurement. Coach enters real goals when available.
 
+Only the coach can delete weigh-ins. Deletion immediately recalculates the history, chart, and summary; each athlete's other measurements and goals remain intact.
+
 ## Persistence and program edits
 
 Entries are saved locally before cloud synchronization. Storage is scoped to the signed-in account. Offline entries remain queued until acknowledged. Revision conflicts are displayed for explicit resolution; the app preserves the local version while it is pending. Sign-out is deferred while there are unsynchronized changes.
+
+Confirmed history deletions use the same offline queue. Server deletion markers prevent stale uploads from recreating deleted workouts or weigh-ins. A remote deletion takes precedence over a pending edit to that deleted record. The additive history-deletion migration must be applied before cloud deletion controls are enabled.
 
 Program edits create a new version for future workouts. Existing active and completed sessions retain their original snapshot. Coach can change exercise names, targets, metric, load/unilateral settings, alternatives, rounds, station order, and rest defaults.
 
 ## Implementation and verification status
 
-The interface, offline store, migration, and bootstrap are implemented. On 2026-10-07, 14 unit/PostgreSQL tests, 20 browser checks across four layouts, the production build, and the production PWA offline reload check passed. The coach reported successful migration and bootstrap in Supabase, and an anonymous API request confirmed the deployed workspace function rejects unauthenticated access. Actual signed-in login and synchronization checks remain outstanding. Hosting and environment publication are separate from local build validation.
+The interface, offline store, migrations, and bootstrap are implemented. On 2026-10-07, 23 unit/PostgreSQL tests, 36 browser checks across four layouts, and the production PWA offline reload check passed. The coach reported successful initial migration/bootstrap and that the live application works. The additive history-deletion migration requires applying in Supabase before using the new deletion feature; authenticated browser tests use test responses and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation.

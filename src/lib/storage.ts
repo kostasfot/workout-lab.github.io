@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { MutationKind, MutationPayload, Program, Workspace } from './model'
+import { isDeletion, type CoachNote, type MutationKind, type MutationPayload, type Program, type Workspace } from './model'
 import { emptyWorkspace } from './program'
 
 export interface LocalWorkspace { scope: string; data: Workspace }
@@ -30,6 +30,10 @@ export async function editWorkspace(scope: string, synced: boolean, edit: (works
     if (!synced) return
     for (const { kind, payload } of changes) {
       const entityId = mutationEntityId(kind, payload), key = `${scope}:${kind}:${entityId}`
+      if (kind === 'workout' && isDeletion(payload)) {
+        const notes = await database.mutations.where('scope').equals(scope).toArray()
+        await database.mutations.bulkDelete(notes.filter(n => n.kind === 'note' && (n.payload as CoachNote).workoutId === entityId).map(n => n.key))
+      }
       const existing = await database.mutations.get(key)
       await database.mutations.put({ key, scope, kind, entityId, payload,
         baseRevision: existing?.baseRevision ?? payload.revision, operationId: crypto.randomUUID(),
@@ -74,6 +78,7 @@ export async function rebaseConflict(scope: string, key: string, revision: numbe
   })
 }
 export function mergeRemote(local: Workspace, remote: Workspace, pending: QueuedMutation[]): Workspace {
+  pending = pending.filter(p => !deletedRemotely(remote, p))
   const queued = (kind: MutationKind, id: string) => pending.some(p => p.kind === kind && p.entityId === id)
   return {
     program: queued('program', 'catalog') ? local.program : remote.program || local.program,
@@ -85,5 +90,12 @@ export function mergeRemote(local: Workspace, remote: Workspace, pending: Queued
       anna: queued('goal', 'anna') ? local.goals.anna : remote.goals.anna,
       dimitra: queued('goal', 'dimitra') ? local.goals.dimitra : remote.goals.dimitra,
     },
+    historyDeletion: remote.historyDeletion,
+    deletedRecords: remote.deletedRecords || [],
   }
+}
+export function deletedRemotely(remote: Workspace, mutation: QueuedMutation) {
+  return (remote.deletedRecords || []).some(r =>
+    (r.kind === mutation.kind && r.id === mutation.entityId) ||
+    (r.kind === 'workout' && mutation.kind === 'note' && (mutation.payload as CoachNote).workoutId === r.id))
 }

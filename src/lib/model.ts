@@ -36,10 +36,21 @@ export interface Goal { id: AthleteId; value: number | null; revision: number }
 export interface Comparison { id: string; date: string; name: string; results: Record<AthleteId, { completed: number; skipped: number }> }
 export interface Workspace {
   program: Program; workouts: Workout[]; weighIns: WeighIn[]; goals: Record<AthleteId, Goal>;
-  comparisons: Comparison[]; notes: CoachNote[]
+  comparisons: Comparison[]; notes: CoachNote[];
+  historyDeletion?: boolean; deletedRecords?: DeletedRecord[]
 }
+export interface DeletedRecord { kind: 'workout' | 'weighin'; id: string; revision: number }
+export interface Deletion { id: string; revision: number; deleted: true }
 export type MutationKind = 'program' | 'workout' | 'weighin' | 'goal' | 'note'
-export type MutationPayload = Program | Workout | WeighIn | Goal | CoachNote
+export type MutationPayload = Program | Workout | WeighIn | Goal | CoachNote | Deletion
+export const isDeletion = (payload: MutationPayload): payload is Deletion => 'deleted' in payload && payload.deleted === true
+
+export function deleteLoggedSet(workout: Workout, key: string): Workout {
+  if (workout.status === 'active') throw new Error('Η προπόνηση είναι ακόμη σε εξέλιξη.')
+  const results = { ...workout.results }
+  delete results[key]
+  return { ...workout, results, status: allExpected(workout).every(r => results[r.key]?.status === 'completed') ? 'completed' : 'partial' }
+}
 
 export function today() {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())

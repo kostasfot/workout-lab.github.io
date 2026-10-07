@@ -62,6 +62,14 @@ Under **Authentication → URL Configuration**, set the **Site URL** to the fina
 
 Supabase's default email service has delivery limits and recipient restrictions. Configure custom SMTP for reliable reset emails to all three users. Manually creating and confirming the accounts lets you test password login without relying on invitation-email delivery. The application does not offer public signup.
 
+## 6. Enable coach history deletion
+
+For an existing project, run [202610070002_history_deletion.sql](../supabase/migrations/202610070002_history_deletion.sql) in a new **SQL Editor** query after the initial migration. This update preserves existing accounts and history and can be run again safely. New installations should apply both migrations before connecting the app.
+
+Refresh the app and allow its next cloud sync to finish. The coach can then delete a weigh-in, an individual logged set, or a whole saved workout using the trash controls and confirmation dialog. Whole-workout deletion removes its results, comparisons, and private notes. Removing one set retains the workout and the other athlete's results and marks the workout partial when required.
+
+Deletions save locally first and queue for reconnection. The database remembers deleted record identifiers and revisions, preventing old offline uploads from recreating them. A stale deletion against an edited record requires resolving the revision conflict in Settings. Athletes cannot delete history, including through direct API requests. Until this migration is applied and detected, the cloud account's deletion controls stay disabled; weight logging and its increment buttons continue working.
+
 ## Troubleshooting
 
 | Message or symptom | What to check |
@@ -72,5 +80,6 @@ Supabase's default email service has delivery limits and recipient restrictions.
 | Foreign-key error in bootstrap | The supplied UID must exist under Authentication → Users in this project. |
 | Users already have profiles | The bootstrap preserves existing membership. Inspect it with the verification query; do not delete accounts to retry. |
 | Pending sync | Check network access, project activity, and whether migration/bootstrap completed. Local entries remain saved. |
+| Deletion controls disabled for the coach | Apply the history-deletion migration, refresh, and let the cloud sync finish. |
 
 The publishable key can authenticate public client requests, but it cannot apply migrations or create these user accounts. Perform those two steps in the dashboard; do not share administrator keys or passwords in chat.

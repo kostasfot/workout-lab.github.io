@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { emptyWorkspace, initialRoutines } from '../../src/lib/program'
-import { advanceWorkout, allExpected, createWorkout, finishWorkout, formatTarget, progress, requiredResults, validResult } from '../../src/lib/model'
+import { advanceWorkout, allExpected, createWorkout, deleteLoggedSet, finishWorkout, formatTarget, progress, requiredResults, validResult } from '../../src/lib/model'
 
 describe('paired training program', () => {
   test('contains the exact routines, combined movements, rest defaults, and empty measurements', () => {
@@ -55,5 +55,17 @@ describe('paired training program', () => {
     program.routines[0].stations[0].slots[0].movements[0].target = 20
     expect(w.routine.stations[0].slots[0].movements[0].target).toBe(10)
     expect(allExpected(w).every(r => r.athlete === 'anna')).toBe(true)
+  })
+  test('deleting a completed set removes only that result and marks the finished workout partial', () => {
+    const w = createWorkout(initialRoutines[0], 'test')
+    for (const r of allExpected(w)) w.results[r.key] = { ...r, status: 'completed', value: 10, weight: r.movement.loaded ? 5 : null }
+    const completed = finishWorkout(w), key = Object.keys(completed.results)[0]
+    const updated = deleteLoggedSet(completed, key)
+    expect(updated.status).toBe('partial')
+    expect(updated.results[key]).toBeUndefined()
+    expect(Object.keys(updated.results)).toHaveLength(43)
+    expect(Object.values(updated.results).every(r => r.status === 'completed')).toBe(true)
+    expect(completed.results[key]).toBeDefined()
+    expect(() => deleteLoggedSet(w, key)).toThrow(/σε εξέλιξη/)
   })
 })

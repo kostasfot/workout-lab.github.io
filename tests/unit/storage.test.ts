@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto'
 import { afterEach, expect, test } from 'vitest'
-import { WorkoutDatabase, acknowledge, editWorkspace, ensureWorkspace, mergeRemote, rebaseConflict } from '../../src/lib/storage'
+import { WorkoutDatabase, acknowledge, editWorkspace, ensureWorkspace, mergeRemote, rebaseConflict, deletedRemotely } from '../../src/lib/storage'
 import { emptyWorkspace } from '../../src/lib/program'
-import { createWorkout } from '../../src/lib/model'
+import { createWorkout, finishWorkout } from '../../src/lib/model'
 
 const database = new WorkoutDatabase('workout-tests')
 afterEach(async () => { await database.workspaces.clear(); await database.mutations.clear() })
@@ -52,4 +52,44 @@ test('keeping a conflicting program creates a new immutable version and retains 
   expect(queued.baseRevision).toBe(2)
   expect(queued.conflict).toBe(false)
   expect(queued.operationId).not.toBe(original.operationId)
+})
+test('offline deletion survives reload, hides the old cloud copy, and replaces an unsent upload', async () => {
+  await ensureWorkspace('coach', database)
+  const measurement = { id: crypto.randomUUID(), athlete: 'anna' as const, date: '2026-10-01', weight: 100, revision: 0, createdAt: new Date().toISOString() }
+  await editWorkspace('coach', true, w => { w.weighIns.push(measurement); return [{ kind: 'weighin', payload: measurement }] }, database)
+  await editWorkspace('coach', true, w => { w.weighIns = []; return [{ kind: 'weighin', payload: { id: measurement.id, revision: 0, deleted: true } }] }, database)
+  database.close(); await database.open()
+  const local = (await database.workspaces.get('coach'))!.data, pending = await database.mutations.toArray(), remote = emptyWorkspace()
+  remote.weighIns.push(measurement)
+  expect(pending).toHaveLength(1)
+  expect(pending[0].payload).toEqual({ id: measurement.id, revision: 0, deleted: true })
+  expect(local.weighIns).toEqual([])
+  expect(mergeRemote(local, remote, pending).weighIns).toEqual([])
+})
+test('an upload response cannot discard a deletion queued while that upload was in flight', async () => {
+  await ensureWorkspace('coach', database)
+  const workout = finishWorkout(createWorkout(emptyWorkspace().program.routines[0], 'program'))
+  await editWorkspace('coach', true, w => { w.workouts.push(workout); return [{ kind: 'workout', payload: workout }] }, database)
+  const sent = (await database.mutations.toArray())[0]
+  await editWorkspace('coach', true, w => { w.workouts = []; return [{ kind: 'workout', payload: { id: workout.id, revision: 0, deleted: true } }] }, database)
+  await acknowledge('coach', sent, 1, database)
+  const deletion = (await database.mutations.toArray())[0]
+  expect(deletion.payload).toEqual({ id: workout.id, revision: 1, deleted: true })
+  expect(deletion.baseRevision).toBe(1)
+  expect((await database.workspaces.get('coach'))!.data.workouts).toEqual([])
+  await acknowledge('coach', deletion, 2, database)
+  expect(await database.mutations.count()).toBe(0)
+})
+test('workout deletion cancels queued private notes, and remote deletion overrides stale local edits', async () => {
+  await ensureWorkspace('coach', database)
+  const workout = finishWorkout(createWorkout(emptyWorkspace().program.routines[0], 'program'))
+  const note = { id: crypto.randomUUID(), workoutId: workout.id, athlete: 'anna' as const, text: 'private', revision: 0 }
+  await editWorkspace('coach', true, w => { w.workouts.push(workout); w.notes.push(note); return [{ kind: 'workout', payload: workout }, { kind: 'note', payload: note }] }, database)
+  const stale = await database.mutations.toArray(), remote = emptyWorkspace()
+  remote.deletedRecords = [{ kind: 'workout', id: workout.id, revision: 2 }]
+  expect(stale.every(p => deletedRemotely(remote, p))).toBe(true)
+  const merged = mergeRemote((await database.workspaces.get('coach'))!.data, remote, stale)
+  expect(merged.workouts).toEqual([]); expect(merged.notes).toEqual([])
+  await editWorkspace('coach', true, w => { w.workouts = []; w.notes = []; return [{ kind: 'workout', payload: { id: workout.id, revision: 0, deleted: true } }] }, database)
+  expect((await database.mutations.toArray()).map(p => p.kind)).toEqual(['workout'])
 })

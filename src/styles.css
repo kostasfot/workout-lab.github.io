@@ -48,6 +48,10 @@ form > label { margin-bottom: 16px; }
 .text-link, .icon-link { border: 0; background: transparent; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; font-weight: 550; font-size: 11px; }
 .icon-link { color: var(--muted); min-width: 40px; }
 .icon-link:hover { color: var(--primary); }
+.delete-link { color: #b91c1c; }
+.delete-link:hover:not(:disabled) { color: #dc2626; background: color-mix(in srgb, #dc2626 7%, var(--surface)); border-radius: 7px; }
+.history-row-actions { display: inline-flex; gap: 2px; }
+.deletion-availability { margin-top: 12px; }
 .avatar { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 650; flex-shrink: 0; }
 .avatar.anna { color: #0d9488; background: color-mix(in srgb, #0d9488 10%, var(--surface)); }
 .avatar.dimitra { color: #8b5cf6; background: color-mix(in srgb, #8b5cf6 10%, var(--surface)); }
@@ -241,6 +245,12 @@ form > label { margin-bottom: 16px; }
 .result-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
 .result-inputs > label { font-size: 11px; }
 .result-inputs label small { color: var(--muted); font-size: 9px; font-weight: 450; display: block; }
+.weight-input-group { min-width: 0; }
+.weight-input-group > label { font-size: 11px; }
+.weight-increments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.weight-increments .button { flex: 1; min-height: 44px; padding: 8px 6px; font-size: 10px; }
+@media (max-width: 680px) { .weight-input-group > label { font-size: 10px; } }
+@media (max-width: 480px) { .weight-increments { flex-direction: column; } .weight-increments .button { font-size: 10px; } }
 .result-inputs input { font-size: 24px; font-weight: 550; padding: 14px; margin-top: 3px; min-height: 65px; letter-spacing: -.6px; text-align: center; }
 .result-inputs.single-input { grid-template-columns: 1fr; }
 .result-inputs .other-side-input { grid-column: 1 / -1; }
@@ -305,7 +315,7 @@ tbody tr:last-child td { border: 0; }
 .small-avatar-pair { display: flex; }
 .small-avatar-pair .avatar { width: 28px; height: 28px; border-radius: 50%; font-size: 9px; border: 2px solid var(--surface); }
 .small-avatar-pair .avatar + .avatar { margin-left: -6px; }
-.session-detail-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.session-detail-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
 .history-detail-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .history-athlete { padding: 17px; background: var(--surface-soft); border-radius: 12px; min-width: 0; }
 .history-athlete-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
