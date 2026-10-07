@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { emptyWorkspace, initialRoutines } from '../../src/lib/program'
-import { advanceWorkout, allExpected, createWorkout, deleteLoggedSet, finishWorkout, formatTarget, progress, requiredResults, validResult } from '../../src/lib/model'
+import { advanceWorkout, allExpected, applyWorkoutEdits, calendarDate, compareWorkoutDates, createWorkout, deleteLoggedSet, discardActiveWorkout, finishWorkout, formatTarget, progress, requiredResults, validResult, workoutDate } from '../../src/lib/model'
 
 describe('paired training program', () => {
   test('contains the exact routines, combined movements, rest defaults, and empty measurements', () => {
@@ -67,5 +67,57 @@ describe('paired training program', () => {
     expect(Object.values(updated.results).every(r => r.status === 'completed')).toBe(true)
     expect(completed.results[key]).toBeDefined()
     expect(() => deleteLoggedSet(w, key)).toThrow(/σε εξέλιξη/)
+  })
+  test('saved workout edits preserve timestamps and the program snapshot while updating dates and actuals', () => {
+    const original = finishWorkout(createWorkout(initialRoutines[0], 'program'))
+    const draft = structuredClone(original), result = allExpected(original)[0]
+    draft.date = '2026-10-01'
+    draft.results[result.key] = { ...result, status: 'completed', weight: 6.25, value: 12 }
+    const updated = applyWorkoutEdits(original, original, draft)
+    expect(updated.date).toBe('2026-10-01')
+    expect(updated.startedAt).toBe(original.startedAt); expect(updated.completedAt).toBe(original.completedAt)
+    expect(updated.routine).toEqual(original.routine)
+    expect(updated.results[result.key].value).toBe(12)
+    expect(original.results[result.key].status).toBe('skipped')
+    expect(updated.status).toBe('partial')
+    expect([updated, original].sort(compareWorkoutDates)[0]).toBe(original)
+    const legacy = { ...original, date: undefined, completedAt: '2026-10-01T22:30:00Z' }
+    expect(workoutDate(legacy)).toBe('2026-10-02')
+    expect(calendarDate('2026-10-01T22:30:00Z')).toBe('2026-10-02')
+  })
+  test('saved workout edits validate dates and values, and can remove a result without inventing skipped work', () => {
+    const original = finishWorkout(createWorkout(initialRoutines[0], 'program'))
+    const invalidDate = { ...structuredClone(original), date: '2026-02-29' }
+    expect(() => applyWorkoutEdits(original, original, invalidDate)).toThrow(/ημερομηνία/)
+    expect(() => applyWorkoutEdits(original, original, { ...invalidDate, date: '' })).toThrow(/ημερομηνία/)
+    expect(() => applyWorkoutEdits(original, original, { ...invalidDate, date: '2099-01-01' })).toThrow(/ημερομηνία/)
+    const draft = structuredClone(original), result = allExpected(original)[0]
+    draft.results[result.key] = { ...result, status: 'completed', value: 10, weight: null }
+    expect(() => applyWorkoutEdits(original, original, draft)).toThrow(/Ελέγξτε/)
+    draft.results[result.key] = { ...result, status: 'pending' }
+    expect(applyWorkoutEdits(original, original, draft).results[result.key]).toBeUndefined()
+  })
+  test('saved edits preserve concurrent changes to other sets and reject changes to the same set or date', () => {
+    const original = finishWorkout(createWorkout(initialRoutines[0], 'program'))
+    const [first, second] = allExpected(original), draft = structuredClone(original), latest = structuredClone(original)
+    draft.results[first.key] = { ...first, status: 'completed', weight: 5, value: 10 }
+    latest.results[second.key] = { ...second, status: 'completed', weight: second.movement.loaded ? 6 : null, value: 11 }
+    // A server round trip may reorder JSON keys without changing any result.
+    latest.results[first.key] = Object.fromEntries(Object.entries(latest.results[first.key]).reverse()) as typeof first
+    const merged = applyWorkoutEdits(latest, original, draft)
+    expect(merged.results[first.key].value).toBe(10); expect(merged.results[second.key].value).toBe(11)
+    latest.results[first.key] = { ...draft.results[first.key], value: 9 }
+    expect(() => applyWorkoutEdits(latest, original, draft)).toThrow(/ίδιο σετ/)
+    draft.date = '2026-10-01'; latest.date = '2026-10-02'
+    expect(() => applyWorkoutEdits(latest, original, draft)).toThrow(/ημερομηνία άλλαξε/)
+  })
+  test('discard removes only the active workout and its private notes without generating history', () => {
+    const workspace = emptyWorkspace(), active = createWorkout(initialRoutines[0], 'program'), saved = finishWorkout(createWorkout(initialRoutines[1], 'program'))
+    workspace.workouts = [active, saved]
+    workspace.notes = [{ id: 'note', workoutId: active.id, athlete: 'anna', text: 'draft', revision: 0 }]
+    const changes = discardActiveWorkout(workspace, active.id)
+    expect(workspace.workouts).toEqual([saved]); expect(workspace.notes).toEqual([])
+    expect(changes).toEqual([{ kind: 'workout', payload: { id: active.id, revision: 0, deleted: true, discard: true } }])
+    expect(() => discardActiveWorkout(workspace, saved.id)).toThrow(/ενεργή/)
   })
 })

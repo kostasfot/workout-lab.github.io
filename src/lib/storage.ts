@@ -91,6 +91,7 @@ export function mergeRemote(local: Workspace, remote: Workspace, pending: Queued
       dimitra: queued('goal', 'dimitra') ? local.goals.dimitra : remote.goals.dimitra,
     },
     historyDeletion: remote.historyDeletion,
+    workoutDiscard: remote.workoutDiscard,
     deletedRecords: remote.deletedRecords || [],
   }
 }

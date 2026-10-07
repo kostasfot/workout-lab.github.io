@@ -36,11 +36,15 @@ Loads mean **kg per dumbbell**. Unilateral reps mean per leg/arm, with an option
 
 Each loaded exercise has **+1.25 kg** and **+2.5 kg** controls. They add to that athlete's entered load, or start from zero when it is empty, and preserve quarter-kilogram precision. Recorded sets lock these controls until the coach reopens the record for editing.
 
+Rep entry has **−5, −1, +1, +5** controls; seconds entry has **−10, −5, +5, +10**. Direct typing remains available. Optional other-side counts adjust independently, starting from the main count when blank. Counts stay between 1 and 3600, and recorded sets lock all adjustments. Changing logged seconds never starts or changes a work timer.
+
 ## Timers and completion
 
 The persistent timer button opens a popup for configurable rest or prescribed work timers. Every timer starts manually. Closing the popup preserves it. Pausing and resetting are explicit. Minimal rest has no preset. Each athlete can have a work timer; the coach can start both together.
 
-Completing a workout saves its date, participants, program snapshot, selected movements, rounds, actual values, and skipped results. Early completion creates a partial record. Coach can correct completed results. CSV export is available from the details; Settings offers an account-scoped JSON backup.
+Completing a workout saves its date, participants, program snapshot, selected movements, rounds, actual values, and skipped results. Early completion creates a partial record. Coach can edit the training date and both athletes' weights, reps, seconds, other-side counts, and completed/skipped/unrecorded status. Edits apply to actual results and preserve the prescribed program and original start/completion timestamps. Cancelling the editor saves nothing. Corrected dates determine history order, recent activity, team comparison dates, and CSV filenames. Settings offers an account-scoped JSON backup.
+
+Coach can stop an active workout without saving it, following confirmation. This removes the draft, its notes, and its timers without adding history. Choosing a new routine while one is active offers resume or confirmed discard followed by an empty new workout; the local replacement is one atomic transaction.
 
 Coach can delete individual logged sets or whole saved workouts with confirmation. Removing a set leaves the other records intact and updates completion status and comparisons. Whole-workout deletion also removes its private notes and comparisons. Active workouts are not deleted through history.
 
@@ -58,8 +62,10 @@ Entries are saved locally before cloud synchronization. Storage is scoped to the
 
 Confirmed history deletions use the same offline queue. Server deletion markers prevent stale uploads from recreating deleted workouts or weigh-ins. A remote deletion takes precedence over a pending edit to that deleted record. The additive history-deletion migration must be applied before cloud deletion controls are enabled.
 
+Draft discard uses the deletion queue with an explicit discard flag. Only the coach can request it, and the backend checks that the current record is still active at the expected revision. The workout-editing/discard migration enables this action and corrected dates in shared comparisons. Saved edits merge untouched rows from the latest local version; a competing change to the same set or training date requires reopening the editor.
+
 Program edits create a new version for future workouts. Existing active and completed sessions retain their original snapshot. Coach can change exercise names, targets, metric, load/unilateral settings, alternatives, rounds, station order, and rest defaults.
 
 ## Implementation and verification status
 
-The interface, offline store, migrations, and bootstrap are implemented. On 2026-10-07, 23 unit/PostgreSQL tests, 36 browser checks across four layouts, and the production PWA offline reload check passed. The coach reported successful initial migration/bootstrap and that the live application works. The additive history-deletion migration requires applying in Supabase before using the new deletion feature; authenticated browser tests use test responses and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation.
+The interface, offline store, migrations, and bootstrap are implemented. The coach reported successful initial migration/bootstrap and that the live application and history deletion work. Migration 003 requires applying in Supabase to enable draft discard and corrected dates in shared comparisons. Authenticated browser tests use test responses, and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation; current checks are recorded in the deployment guide.

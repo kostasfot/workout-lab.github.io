@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, expect, test } from 'vitest'
 import { WorkoutDatabase, acknowledge, editWorkspace, ensureWorkspace, mergeRemote, rebaseConflict, deletedRemotely } from '../../src/lib/storage'
 import { emptyWorkspace } from '../../src/lib/program'
-import { createWorkout, finishWorkout } from '../../src/lib/model'
+import { createWorkout, discardActiveWorkout, finishWorkout } from '../../src/lib/model'
 
 const database = new WorkoutDatabase('workout-tests')
 afterEach(async () => { await database.workspaces.clear(); await database.mutations.clear() })
@@ -92,4 +92,16 @@ test('workout deletion cancels queued private notes, and remote deletion overrid
   expect(merged.workouts).toEqual([]); expect(merged.notes).toEqual([])
   await editWorkspace('coach', true, w => { w.workouts = []; w.notes = []; return [{ kind: 'workout', payload: { id: workout.id, revision: 0, deleted: true } }] }, database)
   expect((await database.mutations.toArray()).map(p => p.kind)).toEqual(['workout'])
+})
+test('offline replacement atomically removes the old draft and preserves exactly one new active workout', async () => {
+  await ensureWorkspace('coach', database)
+  const old = createWorkout(emptyWorkspace().program.routines[0], 'program'), next = createWorkout(emptyWorkspace().program.routines[1], 'program')
+  await editWorkspace('coach', true, w => { w.workouts.push(old); return [{ kind: 'workout', payload: old }] }, database)
+  await editWorkspace('coach', true, w => { const changes = discardActiveWorkout(w, old.id); w.workouts.push(next); return [...changes, { kind: 'workout', payload: next }] }, database)
+  database.close(); await database.open()
+  expect((await database.workspaces.get('coach'))!.data.workouts).toEqual([next])
+  const pending = await database.mutations.toArray()
+  expect(pending).toHaveLength(2)
+  expect(pending.find(p => p.entityId === old.id)!.payload).toEqual({ id: old.id, revision: 0, deleted: true, discard: true })
+  expect(pending.find(p => p.entityId === next.id)!.payload).toEqual(next)
 })

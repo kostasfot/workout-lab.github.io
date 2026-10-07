@@ -46,7 +46,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if ((await db.mutations.get(item.key))?.operationId !== item.operationId) continue
         const { data, error: saveError } = await cloud.rpc(isDeletion(item.payload) ? 'delete_record' : 'save_record', { kind: item.kind, payload: item.payload, expected_revision: item.baseRevision, operation_id: item.operationId })
         if (saveError) {
-          if (/revision_conflict|record_deleted/.test(saveError.message)) await db.mutations.update(item.key, { conflict: true })
+          if (/revision_conflict|record_deleted|workout_finished/.test(saveError.message)) await db.mutations.update(item.key, { conflict: true })
           else { await db.mutations.update(item.key, { error: 'Η αλλαγή αποθηκεύτηκε τοπικά. Ο συγχρονισμός θα επαναληφθεί.' }); throw saveError }
         } else await acknowledge(scope, item, data as number)
       }
@@ -76,7 +76,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   return <WorkspaceContext.Provider value={{ data: row?.data || emptyWorkspace(), loading: !row, pending, syncing, online, scope, error, clearError: () => setError(null), sync, resolve, edit: async fn => {
     try { await editWorkspace(scope, !local, workspace => {
       const changes = fn(workspace)
-      if (changes.some(change => isDeletion(change.payload)) && (identity?.role !== 'coach' || (!local && !workspace.historyDeletion))) throw new Error('Η διαγραφή ιστορικού δεν έχει ενεργοποιηθεί για αυτόν τον λογαριασμό.')
+      for (const change of changes) if (isDeletion(change.payload)) {
+        if (identity?.role !== 'coach' || (!local && !(change.payload.discard ? workspace.workoutDiscard : workspace.historyDeletion))) throw new Error(change.payload.discard ? 'Η διακοπή χωρίς αποθήκευση δεν έχει ενεργοποιηθεί για την ομάδα.' : 'Η διαγραφή ιστορικού δεν έχει ενεργοποιηθεί για αυτόν τον λογαριασμό.')
+      }
       return changes
     }); setError(null) } catch (err) { const message = err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.'; setError(message); throw err }
   } }}>{children}</WorkspaceContext.Provider>

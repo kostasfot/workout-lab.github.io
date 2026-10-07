@@ -4,7 +4,7 @@ A Greek training dashboard for a coach, Άννα, and Δήμητρα. Built for 
 
 The workbook's second sheet supplies three strength routines. Both athletes start opposite exercises, swap without resting, then take a manually started rest. Dumbbell loads are kilograms per dumbbell. TRX curls and triceps extensions have separate entries; slash alternatives are selectable. Weight measurements and goals start empty.
 
-Live workout loads have **+1.25 kg** and **+2.5 kg** buttons for each athlete and exercise, preserving exact decimal loads. The coach can delete individual weigh-ins, logged sets, and whole saved workouts with confirmation; these changes also work offline and sync on reconnection. Apply the history-deletion database update described in the Supabase guide to enable cloud deletion.
+Exercise entry has **+1.25 kg / +2.5 kg** load buttons, **±1 / ±5** reps, and **±5 / ±10** seconds, independently for each athlete. The coach can edit saved workout dates and actual results, delete history with confirmation, or discard an active workout without saving it. Starting another routine offers resume or confirmed replacement of the active draft. These changes work offline and sync on reconnection. Apply the database updates described in the Supabase guide to enable cloud deletion and draft discard.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ The development login includes an explicit device preview for testing without ac
 
 ## Connect Supabase
 
-Follow [the account and database guide](docs/supabase-setup.md). Apply both migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
+Follow [the account and database guide](docs/supabase-setup.md). Apply all three migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. Existing installations only need the unapplied migrations. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
 
 The coach manages the program, workout records, private notes, and goals. Each athlete can read her own workout details, see both athletes' shared comparisons and weights, and add her own weigh-ins. Server permissions enforce these boundaries. Authentication alone does not assign membership; the bootstrap does that.
 
@@ -56,7 +56,7 @@ The output is `dist/`. The live app is at **https://kostasfot.github.io/workout-
 
 Open the app online and sign in on each device before using it offline. Production caches the app, fonts, and page bundles; private API responses are not stored in the service-worker cache. Entries are saved in account-scoped IndexedDB and queued for cloud sync. The UI distinguishes local preview, offline/pending changes, synchronized records, and conflicts. Resolve conflicting versions from Settings; a cloud revision is not silently overwritten.
 
-Timers use saved deadlines and start only when pressed. Closing the popup or reloading does not reset a running timer. Sound requires the app to be active; a background operating-system alarm is not provided. Updates are deferred during an active workout. Finished workouts retain the program snapshot used at the time. Settings offers a JSON backup; workout details offer CSV export.
+Timers use saved deadlines and start only when pressed. Closing the popup or reloading does not reset a running timer. Discarding a workout clears its timers and notes. Sound requires the app to be active; a background operating-system alarm is not provided. Updates are deferred during an active workout. Finished workouts retain the program snapshot used at the time. Editing the training date updates history, comparisons, and the CSV filename while preserving original start/completion timestamps. Settings offers a JSON backup; workout details offer CSV export.
 
 ## Implementation
 

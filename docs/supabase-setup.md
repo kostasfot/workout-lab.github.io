@@ -64,11 +64,19 @@ Supabase's default email service has delivery limits and recipient restrictions.
 
 ## 6. Enable coach history deletion
 
-For an existing project, run [202610070002_history_deletion.sql](../supabase/migrations/202610070002_history_deletion.sql) in a new **SQL Editor** query after the initial migration. This update preserves existing accounts and history and can be run again safely. New installations should apply both migrations before connecting the app.
+For an existing project, run [202610070002_history_deletion.sql](../supabase/migrations/202610070002_history_deletion.sql) in a new **SQL Editor** query after the initial migration. This update preserves existing accounts and history and can be run again safely. New installations should apply all three migrations in order before connecting the app.
 
 Refresh the app and allow its next cloud sync to finish. The coach can then delete a weigh-in, an individual logged set, or a whole saved workout using the trash controls and confirmation dialog. Whole-workout deletion removes its results, comparisons, and private notes. Removing one set retains the workout and the other athlete's results and marks the workout partial when required.
 
 Deletions save locally first and queue for reconnection. The database remembers deleted record identifiers and revisions, preventing old offline uploads from recreating them. A stale deletion against an edited record requires resolving the revision conflict in Settings. Athletes cannot delete history, including through direct API requests. Until this migration is applied and detected, the cloud account's deletion controls stay disabled; weight logging and its increment buttons continue working.
+
+## 7. Enable draft discard and corrected comparison dates
+
+In **SQL Editor → New query**, paste the complete contents of [202610070003_workout_editing_and_discard.sql](../supabase/migrations/202610070003_workout_editing_and_discard.sql) and click **Run**. Apply it after migrations 001 and 002. This update replaces synchronization functions, preserves all accounts and history, and is safe to run again. Do not rerun bootstrap or recreate users.
+
+Refresh the app and let cloud sync finish. The coach's **Διακοπή** button then becomes available in a live workout. Confirmation removes the active draft, its notes, and its timers without adding a history entry. Selecting another routine offers **Συνέχεια τρέχουσας** or **Διακοπή και νέα προπόνηση**. Draft discard requires an explicit flag and the current revision; a stale request cannot discard a workout that has since been completed.
+
+In **Ιστορικό**, the coach can open **Επεξεργασία προπόνησης**, change the training date and each athlete's recorded values/status, then choose **Αποθήκευση αλλαγών**. The prescribed program and original start/completion timestamps remain preserved. Saved-result editing and the quick reps/seconds controls work with the existing storage; this migration makes shared comparison dates use the corrected date and enables cloud draft discard. Until it is detected, discard controls stay disabled.
 
 ## Troubleshooting
 
@@ -81,5 +89,6 @@ Deletions save locally first and queue for reconnection. The database remembers 
 | Users already have profiles | The bootstrap preserves existing membership. Inspect it with the verification query; do not delete accounts to retry. |
 | Pending sync | Check network access, project activity, and whether migration/bootstrap completed. Local entries remain saved. |
 | Deletion controls disabled for the coach | Apply the history-deletion migration, refresh, and let the cloud sync finish. |
+| Draft discard controls disabled | Apply migration 003 after 001 and 002, refresh, and let cloud sync finish. |
 
 The publishable key can authenticate public client requests, but it cannot apply migrations or create these user accounts. Perform those two steps in the dashboard; do not share administrator keys or passwords in chat.

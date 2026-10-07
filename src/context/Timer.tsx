@@ -7,7 +7,7 @@ import { athleteIds, athletes, movementsFor, slotFor } from '../lib/model'
 
 export interface TimerJob { id: string; label: string; duration: number; remaining: number; deadline: number | null }
 export const remainingSeconds = (job: TimerJob, now = Date.now()) => job.deadline === null ? job.remaining : Math.max(0, Math.ceil((job.deadline - now) / 1000))
-interface TimerValue { open: () => void; jobs: TimerJob[]; now: number }
+interface TimerValue { open: () => void; clear: () => void; jobs: TimerJob[]; now: number }
 const TimerContext = createContext<TimerValue>(null!)
 export const useTimer = () => useContext(TimerContext)
 export function TimerProvider({ children }: { children: ReactNode }) {
@@ -40,7 +40,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const workTargets = workout && station ? athleteIds.filter(a => workout.participants.includes(a)).flatMap(a => movementsFor(workout, a, station, slotFor(a, workout.phase)).filter(m => m.metric === 'seconds').map(m => ({ id: `${a}:${m.id}`, label: `${athletes[a].name} · ${m.name}`, duration: m.target }))) : []
   const active = jobs.find(j => j.deadline !== null && remainingSeconds(j, now) > 0) || jobs.find(j => j.deadline !== null)
   const show = () => { setDuration(station?.rest == null ? '' : String(station.rest)); setOpen(true) }
-  return <TimerContext.Provider value={{ open: show, jobs, now }}>{children}
+  return <TimerContext.Provider value={{ open: show, clear: () => { setJobs([]); setOpen(false); notified.current.clear(); localStorage.removeItem(storageKey) }, jobs, now }}>{children}
     <button className={`timer-fab ${active ? 'timer-fab-active' : ''}`} onClick={show} aria-label="Άνοιγμα χρονομέτρου"><Timer size={21} /><span>{active ? seconds(remainingSeconds(active, now)) : 'Χρονόμετρο'}</span></button>
     <Modal open={open} onOpenChange={setOpen} title="Χρονόμετρο" description="Ξεκινά μόνο όταν το επιλέξετε. Συνεχίζει και με κλειστό παράθυρο.">
       <div className="segmented"><button className={mode === 'rest' ? 'selected' : ''} onClick={() => setMode('rest')}><Clock3 size={16} />Διάλειμμα</button><button className={mode === 'work' ? 'selected' : ''} onClick={() => setMode('work')}><Timer size={16} />Άσκηση</button></div>

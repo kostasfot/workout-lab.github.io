@@ -25,6 +25,9 @@ beforeAll(async () => {
   const deletionMigration = readFileSync('supabase/migrations/202610070002_history_deletion.sql', 'utf8')
   await database.exec(deletionMigration)
   await database.exec(deletionMigration) // Re-running this additive update is safe.
+  const workoutMigration = readFileSync('supabase/migrations/202610070003_workout_editing_and_discard.sql', 'utf8')
+  await database.exec(workoutMigration)
+  await database.exec(workoutMigration)
   await asUser('coach')
 })
 afterAll(async () => { await database.close() })
@@ -139,4 +142,35 @@ test('an offline-created record can be deleted before its first upload', async (
   const id = crypto.randomUUID()
   expect((await remove('weighin', id, 0)).rows[0].delete_record).toBe(1)
   await expect(save('weighin', { id, athlete: 'anna', date: '2026-10-01', weight: 100 }, 0)).rejects.toThrow(/record_deleted/)
+})
+test('coach can explicitly discard an active draft; athletes cannot, and stale requests cannot discard completed history', async () => {
+  await asUser('coach')
+  const active = createWorkout(state.program.routines[0], state.program.id), note = { id: crypto.randomUUID(), workoutId: active.id, athlete: 'anna', text: 'draft note', revision: 0 }
+  await save('workout', active); await save('note', note)
+  const discard = (revision: number, op = crypto.randomUUID()) => database.query<{ delete_record: number }>('select public.delete_record($1, $2::jsonb, $3, $4::uuid)', ['workout', JSON.stringify({ id: active.id, discard: true }), revision, op])
+  await asUser('anna'); await expect(discard(1)).rejects.toThrow(/not_authorized/)
+  await asUser('coach'); await expect(discard(0)).rejects.toThrow(/revision_conflict/)
+  const op = crypto.randomUUID()
+  expect((await discard(1, op)).rows[0].delete_record).toBe(2)
+  expect((await discard(1, op)).rows[0].delete_record).toBe(2)
+  const remote = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  expect(remote.workoutDiscard).toBe(true)
+  expect(remote.workouts.some(w => w.id === active.id)).toBe(false)
+  expect(remote.notes.some(n => n.workoutId === active.id)).toBe(false)
+  expect(remote.comparisons.some(w => w.id === active.id)).toBe(false)
+  await expect(save('workout', active, 0)).rejects.toThrow(/record_deleted/)
+  const finished = finishWorkout(createWorkout(state.program.routines[0], state.program.id))
+  await save('workout', finished)
+  await expect(database.query('select public.delete_record($1, $2::jsonb, $3, $4::uuid)', ['workout', JSON.stringify({ id: finished.id, discard: true }), 1, crypto.randomUUID()])).rejects.toThrow(/workout_finished/)
+})
+test('corrected workout dates reach shared comparisons even when the athlete was absent', async () => {
+  await asUser('coach')
+  const saved = { ...finishWorkout(createWorkout(state.program.routines[0], state.program.id, ['dimitra'])), date: '2026-10-01' }
+  await save('workout', saved)
+  await save('workout', { ...saved, date: '2026-10-02', revision: 1 }, 1)
+  await asUser('anna')
+  const remote = (await database.query<{ get_workspace: typeof state }>('select public.get_workspace()')).rows[0].get_workspace
+  expect(remote.workouts.some(w => w.id === saved.id)).toBe(false)
+  expect(remote.comparisons.find(w => w.id === saved.id)!.date).toBe('2026-10-02')
+  await expect(save('workout', { ...saved, date: '2026-10-03' }, 2)).rejects.toThrow(/not_authorized/)
 })

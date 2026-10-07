@@ -25,7 +25,7 @@ export interface SetResult {
   weight: number | null; value: number | null; otherSide?: number | null
 }
 export interface Workout {
-  id: string; programId: string; routine: Routine; startedAt: string; completedAt?: string;
+  id: string; programId: string; routine: Routine; startedAt: string; completedAt?: string; date?: string;
   status: 'active' | 'completed' | 'partial'; stationIndex: number; roundIndex: number; phase: 0 | 1;
   participants: AthleteId[]; selections: Record<string, string>; results: Record<string, SetResult>;
   revision: number
@@ -37,10 +37,10 @@ export interface Comparison { id: string; date: string; name: string; results: R
 export interface Workspace {
   program: Program; workouts: Workout[]; weighIns: WeighIn[]; goals: Record<AthleteId, Goal>;
   comparisons: Comparison[]; notes: CoachNote[];
-  historyDeletion?: boolean; deletedRecords?: DeletedRecord[]
+  historyDeletion?: boolean; workoutDiscard?: boolean; deletedRecords?: DeletedRecord[]
 }
 export interface DeletedRecord { kind: 'workout' | 'weighin'; id: string; revision: number }
-export interface Deletion { id: string; revision: number; deleted: true }
+export interface Deletion { id: string; revision: number; deleted: true; discard?: true }
 export type MutationKind = 'program' | 'workout' | 'weighin' | 'goal' | 'note'
 export type MutationPayload = Program | Workout | WeighIn | Goal | CoachNote | Deletion
 export const isDeletion = (payload: MutationPayload): payload is Deletion => 'deleted' in payload && payload.deleted === true
@@ -52,10 +52,45 @@ export function deleteLoggedSet(workout: Workout, key: string): Workout {
   return { ...workout, results, status: allExpected(workout).every(r => results[r.key]?.status === 'completed') ? 'completed' : 'partial' }
 }
 
-export function today() {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+export function calendarDate(value: string | Date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value))
   const get = (name: string) => parts.find(p => p.type === name)?.value
   return `${get('year')}-${get('month')}-${get('day')}`
+}
+export const today = () => calendarDate()
+export const workoutDate = (workout: Workout) => workout.date || calendarDate(workout.completedAt || workout.startedAt)
+export const compareWorkoutDates = (a: Workout, b: Workout) => workoutDate(b).localeCompare(workoutDate(a)) || b.startedAt.localeCompare(a.startedAt)
+
+// Compare editable values: a PostgreSQL JSON round trip can reorder object keys.
+function sameResult(a: SetResult | undefined, b: SetResult | undefined) {
+  return a === b || Boolean(a && b && a.status === b.status && a.weight === b.weight && a.value === b.value && (a.otherSide ?? null) === (b.otherSide ?? null))
+}
+
+export function applyWorkoutEdits(latest: Workout, original: Workout, draft: Workout): Workout {
+  if (latest.id !== original.id || draft.id !== latest.id || latest.status === 'active') throw new Error('Δεν είναι διαθέσιμη αυτή η αποθηκευμένη προπόνηση.')
+  const date = draft.date ?? workoutDate(draft)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date > today()) throw new Error('Επιλέξτε έγκυρη ημερομηνία, έως σήμερα.')
+  if (date !== workoutDate(original) && workoutDate(latest) !== workoutDate(original)) throw new Error('Η ημερομηνία άλλαξε από άλλη συσκευή. Ανοίξτε ξανά την επεξεργασία.')
+  const results = { ...latest.results }
+  for (const expected of allExpected(original)) {
+    const before = original.results[expected.key], after = draft.results[expected.key]
+    if (sameResult(before, after)) continue
+    if (!sameResult(latest.results[expected.key], before)) throw new Error('Το ίδιο σετ άλλαξε από άλλη συσκευή. Ανοίξτε ξανά την επεξεργασία.')
+    if (!after || after.status === 'pending') { delete results[expected.key]; continue }
+    if (after.status === 'skipped') { results[expected.key] = { ...expected, status: 'skipped' }; continue }
+    if (after.status !== 'completed' || !validResult(after) || after.value! > 3600 || (after.weight ?? 0) > 500 || (after.otherSide ?? 0) > 3600) throw new Error(`Ελέγξτε το σετ ${expected.round + 1}: ${expected.movement.name}.`)
+    results[expected.key] = { ...expected, status: 'completed', weight: expected.movement.loaded ? after.weight : null, value: after.value, otherSide: expected.movement.unilateral ? after.otherSide : null }
+  }
+  return { ...latest, date: date === workoutDate(original) ? workoutDate(latest) : date, results, status: allExpected(latest).every(r => results[r.key]?.status === 'completed') ? 'completed' : 'partial' }
+}
+
+export function discardActiveWorkout(workspace: Workspace, id: string): { kind: 'workout'; payload: Deletion }[] {
+  const workout = workspace.workouts.find(w => w.id === id)
+  if (!workout || workout.status !== 'active') throw new Error('Η προπόνηση δεν είναι πλέον ενεργή. Ελέγξτε την πριν συνεχίσετε.')
+  workspace.workouts = workspace.workouts.filter(w => w.id !== id)
+  workspace.notes = workspace.notes.filter(n => n.workoutId !== id)
+  workspace.comparisons = workspace.comparisons.filter(c => c.id !== id)
+  return [{ kind: 'workout', payload: { id, revision: workout.revision, deleted: true, discard: true } }]
 }
 export function formatDate(value: string, long = false) {
   return new Intl.DateTimeFormat('el-GR', { day: 'numeric', month: long ? 'long' : 'short', year: long ? 'numeric' : undefined, timeZone: 'Europe/Athens' }).format(new Date(value.length === 10 ? value + 'T12:00:00Z' : value))
@@ -111,7 +146,7 @@ export function finishWorkout(w: Workout): Workout {
   return { ...w, results, status: complete ? 'completed' : 'partial', completedAt: new Date().toISOString() }
 }
 export function createWorkout(routine: Routine, programId: string, participants: AthleteId[] = [...athleteIds]): Workout {
-  return { id: crypto.randomUUID(), programId, routine: structuredClone(routine), startedAt: new Date().toISOString(), status: 'active', stationIndex: 0, roundIndex: 0, phase: 0, participants, selections: {}, results: {}, revision: 0 }
+  return { id: crypto.randomUUID(), programId, routine: structuredClone(routine), startedAt: new Date().toISOString(), date: today(), status: 'active', stationIndex: 0, roundIndex: 0, phase: 0, participants, selections: {}, results: {}, revision: 0 }
 }
 export function weightStats(entries: WeighIn[], athlete: AthleteId) {
   const ordered = entries.filter(e => e.athlete === athlete).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt))
