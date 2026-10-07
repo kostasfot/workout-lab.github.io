@@ -2,6 +2,12 @@
 
 The app is published at **https://kostasfot.github.io/workout-lab.github.io/**. GitHub Pages serves the `gh-pages` branch's root directory, with HTTPS enforced. Source code is on `main`. Publishing the Codex environment is a separate action that retains the development workspace.
 
+## Site address
+
+This repository is a project site under the `kostasfot` account, so its repository name appears in the URL. The hostname `workout-lab.github.io` requires a repository named `workout-lab.github.io` owned by the GitHub account or organization `workout-lab`. That organization already exists; using the hostname requires control of it. Naming a repository this way under another owner does not reserve that hostname.
+
+A user-site repository named `kostasfot.github.io` under `kostasfot` would instead serve **https://kostasfot.github.io/**. An owned custom domain is another option. Either move also requires updating the app's build path, publication configuration, and Supabase authentication redirect URLs before deployment.
+
 ## Publish an update
 
 1. Commit the source changes and push them to `main` in `kostasfot/workout-lab.github.io`.
@@ -24,3 +30,5 @@ The [Publish Workout Lab workflow](../.github/workflows/deploy.yml) remains avai
 ## Verified behavior
 
 The production site serves the matching source commit, index, app assets, manifest, and service worker. GitHub reports successful Pages deployment. Local tests cover 14 unit/database cases, 20 browser checks across four sizes, and production PWA offline reloads. Actual account login, cloud synchronization, SMTP delivery, and use on the physical Android tablet still need signed-in verification.
+
+Four additional browser regression checks cover sign-in with an existing six-character password and the eight-character requirement for new passwords. These intercept authentication requests with a test response; they do not use the athletes' real credentials.

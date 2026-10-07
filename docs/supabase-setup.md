@@ -10,6 +10,8 @@ In the project's **SQL Editor**, choose **New query**, paste the complete conten
 
 In **Authentication → Users**, choose **Add user → Create new user**. Create the coach, Άννα, and Δήμητρα with a distinct email and a password of at least eight characters. Enter passwords only in the Supabase dashboard. Select the option to confirm the email automatically for these manually created accounts.
 
+Existing accounts can sign in with their current password, including a six-character password already accepted by Supabase. The sign-in form only requires a nonempty password and lets Supabase authenticate it. The eight-character minimum applies when setting a new password through recovery, not when signing in.
+
 Open each user's record and copy the **User UID**. The coach supplied these IDs:
 
 | Account | User UID |
