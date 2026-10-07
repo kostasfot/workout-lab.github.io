@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { allExpected, createWorkout, finishWorkout, previousResult, requiredResults, type SetResult } from '../../src/lib/model'
+import { allExpected, canRecordTogether, createWorkout, finishWorkout, previousResult, recordTogether, requiredResults, type SetResult } from '../../src/lib/model'
 import { initialRoutines } from '../../src/lib/program'
 
 const completed = (r: SetResult, value = 10, weight = 6): SetResult => ({ ...r, status: 'completed', value, weight: r.movement.loaded ? weight : null })
@@ -48,5 +48,47 @@ describe('reuse actual exercise values', () => {
     const leg = requiredResults(legs, true)[0]
     legs.results[leg.key] = { ...completed(leg), otherSide: 8 }; legs.roundIndex = 1
     expect(previousResult([], legs, requiredResults(legs, true)[0])?.result.otherSide).toBe(8)
+  })
+})
+
+describe('record both athletes together', () => {
+  test('requires all pending values, saves one pair, and neither advances nor duplicates records', () => {
+    const w = createWorkout(initialRoutines[0], 'program'), [anna, dimitra] = requiredResults(w, true)
+    w.results[anna.key] = { ...completed(anna), status: 'pending' }
+    expect(canRecordTogether(w)).toBe(false)
+    expect(() => recordTogether(w)).toThrow(/τιμές/)
+    w.results[dimitra.key] = { ...completed(dimitra, 12), status: 'pending' }
+    const recorded = recordTogether(w)
+    expect(Object.values(recorded.results).map(r => r.status)).toEqual(['completed', 'completed'])
+    expect(recorded.phase).toBe(0); expect(recorded.roundIndex).toBe(0)
+    expect(recorded.results[dimitra.key].value).toBe(12)
+    expect(w.results[anna.key].status).toBe('pending')
+    expect(recordTogether(recorded)).toBe(recorded)
+    expect(canRecordTogether(recorded)).toBe(false)
+  })
+  test('includes both TRX movements and preserves previously skipped or individually recorded results', () => {
+    const w = createWorkout(initialRoutines[1], 'program'); w.stationIndex = 2
+    const [press, curls, triceps] = requiredResults(w, true)
+    w.results[press.key] = { ...press, status: 'skipped' }
+    w.results[curls.key] = completed(curls, 9)
+    expect(canRecordTogether(w)).toBe(false)
+    w.results[triceps.key] = { ...completed(triceps, 11), status: 'pending' }
+    const recorded = recordTogether(w)
+    expect(recorded.results[press.key]).toEqual(w.results[press.key])
+    expect(recorded.results[curls.key]).toEqual(w.results[curls.key])
+    expect(recorded.results[triceps.key].status).toBe('completed')
+  })
+  test('supports actual seconds and unilateral counts, rejects absent athletes and invalid limits', () => {
+    const timed = createWorkout(initialRoutines[2], 'program')
+    for (const r of requiredResults(timed, true)) timed.results[r.key] = { ...completed(r, 35), status: 'pending' }
+    expect(canRecordTogether(timed)).toBe(true)
+    expect(Object.values(recordTogether(timed).results).every(r => r.value === 35)).toBe(true)
+    const w = createWorkout(initialRoutines[0], 'program'); w.stationIndex = 2
+    for (const r of requiredResults(w, true)) w.results[r.key] = { ...completed(r), status: 'pending', otherSide: r.movement.unilateral ? 8 : null }
+    expect(Object.values(recordTogether(w).results)[0].otherSide).toBe(8)
+    expect(canRecordTogether({ ...w, participants: ['anna'] })).toBe(false)
+    expect(() => recordTogether({ ...w, participants: ['anna'] })).toThrow()
+    Object.values(w.results)[0].value = 3601
+    expect(canRecordTogether(w)).toBe(false)
   })
 })

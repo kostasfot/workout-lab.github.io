@@ -132,6 +132,19 @@ export function previousResult(workouts: Workout[], workout: Workout, expected: 
     if (result) return { result, source: 'workout' }
   }
 }
+export function canRecordTogether(w: Workout) {
+  const pending = requiredResults(w, true).filter(r => !isRecorded(r))
+  return w.status === 'active' && athleteIds.every(a => w.participants.includes(a)) && pending.length > 0 &&
+    pending.every(r => validResult(r) && r.value! <= 3600 && (r.weight ?? 0) <= 500 && (r.otherSide ?? 0) <= 3600)
+}
+export function recordTogether(w: Workout): Workout {
+  const pending = requiredResults(w, true).filter(r => !isRecorded(r))
+  if (!pending.length) return w
+  if (!canRecordTogether(w)) throw new Error('Συμπληρώστε έγκυρες τιμές για όλες τις τρέχουσες ασκήσεις και των δύο αθλητριών.')
+  const results = { ...w.results }
+  for (const r of pending) results[r.key] = { ...r, status: 'completed' }
+  return { ...w, results }
+}
 export function advanceWorkout(w: Workout): Workout {
   if (!requiredResults(w, w.phase === 0).every(isRecorded)) throw new Error('Καταγράψτε ή παραλείψτε τις τρέχουσες ασκήσεις πριν συνεχίσετε.')
   if (w.phase === 0) return { ...w, phase: 1 }

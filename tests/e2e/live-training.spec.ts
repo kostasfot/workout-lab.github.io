@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { mockAccount, synchronize } from './fixtures/cloud'
 
 async function start(page: Page, routine = 1) {
   await page.goto('/')
@@ -53,4 +54,49 @@ test('reuse fills separate athlete values without recording and survives reload,
   await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('12')
   await expect(anna).toContainText('Προηγούμενη προπόνηση')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('both recordings validate the entire pair, preserve individual entries and synchronize offline', async ({ page, context }) => {
+  const { workout, requests, remote } = await mockAccount(page, 'coach', true, { active: true })
+  await page.goto(`/#/workout/${workout.id}`)
+  await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
+  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), both = page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true })
+  await expect(anna.getByRole('heading', { name: 'TRX Rows', exact: true })).toBeVisible()
+  await expect(both).toBeDisabled()
+  await anna.getByLabel(/^Επαναλήψεις/).fill('9')
+  await expect(both).toBeDisabled()
+  await dimitra.getByLabel(/^Βάρος/).fill('7.5'); await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
+  await expect(both).toBeEnabled()
+  await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
+  await expect(both).toBeEnabled()
+  await context.setOffline(true); await both.click()
+  await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(dimitra.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(both).toBeDisabled()
+  await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3' })).toBeVisible()
+  expect(requests).toHaveLength(0)
+  await context.setOffline(false); await synchronize(page)
+  const saved = requests.filter(r => r.endpoint === 'save_record' && r.kind === 'workout')
+  expect(saved).toHaveLength(1)
+  expect(Object.values(remote.workouts[0].results).filter(r => r.status === 'completed')).toHaveLength(4)
+  await page.goto(`/#/workout/${workout.id}`)
+  await page.reload()
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('9')
+  await expect(dimitra.getByLabel(/^Βάρος/)).toHaveValue('7.5')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('record both includes every TRX movement before the swap', async ({ page }) => {
+  const { workout } = await mockAccount(page, 'coach', true, { active: true, routine: 1 })
+  workout.stationIndex = 2; workout.results = {}
+  await page.goto(`/#/workout/${workout.id}`)
+  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), both = page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true })
+  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
+  const curls = dimitra.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Biceps Curls', exact: true }) })
+  const triceps = dimitra.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Triceps Extensions', exact: true }) })
+  await curls.getByLabel(/^Επαναλήψεις/).fill('9')
+  await expect(both).toBeDisabled()
+  await triceps.getByLabel(/^Επαναλήψεις/).fill('11'); await both.click()
+  await expect(dimitra.getByText('Έγινε', { exact: true })).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeEnabled()
 })
