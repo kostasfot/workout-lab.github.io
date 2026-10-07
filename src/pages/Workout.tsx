@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ArrowLeftRight, Check, ChevronLeft, Dumbbell, Flag, LockKeyhole, SkipForward, Timer, Trophy, Undo2, CheckCheck, Square } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowLeftRight, Check, ChevronLeft, Copy, Dumbbell, Flag, LockKeyhole, SkipForward, Timer, Trophy, Undo2, CheckCheck, Square } from 'lucide-react'
 import { useWorkspace } from '../context/Workspace'
 import { useAuth } from '../context/Auth'
 import { useTimer } from '../context/Timer'
-import { athleteIds, athletes, discardActiveWorkout, compareWorkoutDates, advanceWorkout, allExpected, blankResult, finishWorkout, formatTarget, isRecorded, movementsFor, progress, requiredResults, slotFor, validResult, type AthleteId, type Movement, type SetResult, type Workout as WorkoutType } from '../lib/model'
+import { athleteIds, athletes, discardActiveWorkout, previousResult, advanceWorkout, allExpected, blankResult, finishWorkout, formatTarget, isRecorded, movementsFor, progress, requiredResults, slotFor, validResult, type AthleteId, type Movement, type SetResult, type Workout as WorkoutType } from '../lib/model'
 import { number } from '../lib/utils'
 import { ValueButtons } from '../components/ValueButtons'
 import { WeightButtons } from '../components/WeightButtons'
@@ -49,7 +49,12 @@ function AthletePanel({ athlete, workout, update, present }: { athlete: AthleteI
 function UsersIcon() { return <Dumbbell size={24} /> }
 function MovementLogger({ movement, athlete, workout, slotIndex, update }: { movement: Movement; athlete: AthleteId; workout: WorkoutType; slotIndex: number; update: (fn: (w: WorkoutType) => WorkoutType) => Promise<void> }) {
   const { data } = useWorkspace(), blank = blankResult(workout, athlete, movement, slotIndex), result = workout.results[blank.key] || blank, recorded = isRecorded(result)
-  const previous = [...data.workouts].filter(w => w.id !== workout.id && w.status !== 'active').sort(compareWorkoutDates).flatMap(w => Object.values(w.results)).find(r => r.athlete === athlete && r.movement.id === movement.id && r.status === 'completed')
+  const previous = previousResult(data.workouts, workout, blank)
+  const reuse = () => update(w => {
+    const current = w.results[blank.key] || blank, prior = previousResult(data.workouts, w, blank)?.result
+    if (isRecorded(current) || !prior) return w
+    return { ...w, results: { ...w.results, [blank.key]: { ...current, weight: movement.loaded ? prior.weight : null, value: prior.value, otherSide: movement.unilateral ? prior.otherSide ?? null : null } } }
+  })
   const setResult = (patch: Partial<SetResult>) => update(w => ({ ...w, results: { ...w.results, [blank.key]: { ...(w.results[blank.key] || blank), ...patch } } }))
   const adjustValue = (field: 'value' | 'otherSide', delta: number) => update(w => {
     const current = w.results[blank.key] || blank
@@ -68,5 +73,5 @@ function MovementLogger({ movement, athlete, workout, slotIndex, update }: { mov
     })} /></div>}
     <div className="exercise-input-group"><label htmlFor={`${athlete}-${movement.id}-value`}>{movement.metric === 'seconds' ? 'Διάρκεια' : 'Επαναλήψεις'}<small>{movement.metric === 'seconds' ? 'δευτερόλεπτα' : movement.unilateral === 'leg' ? 'ανά πόδι' : movement.unilateral === 'arm' ? 'ανά χέρι' : 'πραγματικές'}</small><input id={`${athlete}-${movement.id}-value`} type="number" inputMode="numeric" min="1" max="3600" step="1" placeholder="—" disabled={recorded} value={result.value ?? ''} onChange={e => void setResult({ value: e.target.value === '' ? null : Number(e.target.value) })} /></label><ValueButtons value={result.value} metric={movement.metric} label={`${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('value', delta)} /></div>
     {movement.unilateral && <div className="other-side-input exercise-input-group"><label>Άλλη πλευρά <small>προαιρετικά, αν διαφέρει</small><input aria-label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} type="number" inputMode="numeric" min="1" step="1" placeholder="ίδιες επαναλήψεις" disabled={recorded} value={result.otherSide ?? ''} onChange={e => void setResult({ otherSide: e.target.value === '' ? null : Number(e.target.value) })} /></label><ValueButtons value={result.otherSide ?? result.value} metric="reps" label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('otherSide', delta)} /></div>}
-    </div>{previous && <span className="previous-result">Προηγούμενο: {previous.weight !== null ? `${number(previous.weight, 2)} kg · ` : ''}{previous.value} {movement.metric === 'seconds' ? 'δευτ.' : 'επ.'}</span>}<div className="movement-actions">{recorded ? <Button type="button" variant="secondary" onClick={() => void setResult({ status: 'pending' })}><Undo2 size={16} />Αλλαγή καταγραφής</Button> : <><Button type="button" variant="ghost" size="small" onClick={() => void setResult({ status: 'skipped', weight: null, value: null, otherSide: null })}><SkipForward size={15} />Παράλειψη</Button><Button type="submit" disabled={!validResult(result)}><Check size={16} />Καταγραφή</Button></>}</div></form>
+    </div>{previous && <div className="previous-entry"><span className="previous-result">{previous.source === 'round' ? 'Προηγούμενος γύρος' : 'Προηγούμενη προπόνηση'}: {movement.loaded && previous.result.weight !== null ? `${number(previous.result.weight, 2)} kg · ` : ''}{previous.result.value} {movement.metric === 'seconds' ? 'δευτ.' : 'επ.'}{movement.unilateral && previous.result.otherSide != null ? ` · άλλη πλευρά ${previous.result.otherSide}` : ''}</span><Button type="button" variant="secondary" size="small" disabled={recorded} onClick={() => void reuse()}><Copy size={15} />Ίδιο με πριν</Button></div>}<div className="movement-actions">{recorded ? <Button type="button" variant="secondary" onClick={() => void setResult({ status: 'pending' })}><Undo2 size={16} />Αλλαγή καταγραφής</Button> : <><Button type="button" variant="ghost" size="small" onClick={() => void setResult({ status: 'skipped', weight: null, value: null, otherSide: null })}><SkipForward size={15} />Παράλειψη</Button><Button type="submit" disabled={!validResult(result)}><Check size={16} />Καταγραφή</Button></>}</div></form>
 }

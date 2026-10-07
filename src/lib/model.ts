@@ -121,6 +121,17 @@ export function validResult(r: SetResult) {
     (!r.movement.loaded || (r.weight !== null && Number.isFinite(r.weight) && r.weight >= 0)) &&
     (r.otherSide == null || (Number.isInteger(r.otherSide) && r.otherSide > 0))
 }
+export function previousResult(workouts: Workout[], workout: Workout, expected: SetResult): { result: SetResult; source: 'round' | 'workout' } | undefined {
+  const compatible = (r: SetResult) => r.athlete === expected.athlete && r.movement.id === expected.movement.id &&
+    r.movement.metric === expected.movement.metric && r.movement.loaded === expected.movement.loaded && r.movement.unilateral === expected.movement.unilateral &&
+    r.status === 'completed' && validResult(r) && r.value! <= 3600 && (r.weight ?? 0) <= 500 && (r.otherSide ?? 0) <= 3600
+  const earlier = Object.values(workout.results).filter(r => compatible(r) && r.station === expected.station && r.slot === expected.slot && r.round < expected.round).sort((a, b) => b.round - a.round)[0]
+  if (earlier) return { result: earlier, source: 'round' }
+  for (const saved of workouts.filter(w => w.id !== workout.id && w.status !== 'active').sort(compareWorkoutDates)) {
+    const result = Object.values(saved.results).filter(compatible).sort((a, b) => b.round - a.round)[0]
+    if (result) return { result, source: 'workout' }
+  }
+}
 export function advanceWorkout(w: Workout): Workout {
   if (!requiredResults(w, w.phase === 0).every(isRecorded)) throw new Error('Καταγράψτε ή παραλείψτε τις τρέχουσες ασκήσεις πριν συνεχίσετε.')
   if (w.phase === 0) return { ...w, phase: 1 }

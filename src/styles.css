@@ -261,6 +261,9 @@ form > label { margin-bottom: 16px; }
 .result-inputs .other-side-input input { min-height: 44px; font-size: 16px; }
 .result-inputs .other-side-input input::placeholder { font-size: 10px; }
 .previous-result { display: block; color: var(--muted); font-size: 9px; margin-top: 12px; }
+.previous-entry { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.previous-entry .previous-result { margin-top: 0; line-height: 1.7; }
+.previous-entry .button { min-height: 44px; }
 .movement-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 22px; }
 .movement-actions .button { font-size: 11px; }
 .recorded .prescribed-target { opacity: .7; }
