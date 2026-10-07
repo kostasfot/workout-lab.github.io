@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Check, CalendarDays } from 'lucide-react'
 import { allExpected, athletes, formatTarget, today, workoutDate, type AthleteId, type SetResult, type Workout } from '../lib/model'
-import { number } from '../lib/utils'
 import { Badge, Button, Modal } from './ui'
 import { ValueButtons } from './ValueButtons'
+import { WeightButtons } from './WeightButtons'
 
 export function WorkoutEditor({ workout, athlete, station, onClose, onSave }: { workout: Workout; athlete?: AthleteId; station?: string; onClose: () => void; onSave: (draft: Workout) => Promise<void> }) {
   const [draft, setDraft] = useState<Workout>(() => ({ ...structuredClone(workout), date: workoutDate(workout) }))
@@ -30,7 +30,10 @@ export function WorkoutEditor({ workout, athlete, station, onClose, onSave }: { 
           return <section className="workout-editor-result" key={blank.key} aria-label={label}>
             <div className="workout-editor-result-heading"><div><Badge>Σετ {blank.round + 1}</Badge><h3>{blank.movement.name}</h3><small>Στόχος: {formatTarget(blank.movement)}</small></div><label>Κατάσταση σετ<select value={result.status} onChange={event => { const status = event.target.value as SetResult['status']; change(blank.key, current => ({ ...current, status })) }}><option value="completed">Ολοκληρώθηκε</option><option value="skipped">Παραλείφθηκε</option><option value="pending">Χωρίς καταγραφή</option></select></label></div>
             {completed && <div className="workout-editor-inputs">
-              {blank.movement.loaded && <div><label>Βάρος (kg / αλτήρα)<input type="number" inputMode="decimal" min="0" max="500" step="any" required value={result.weight ?? ''} onChange={event => { const weight = event.target.value === '' ? null : Number(event.target.value); change(blank.key, current => ({ ...current, weight })) }} /></label><div className="weight-increments">{[1.25, 2.5].map(step => <Button key={step} type="button" variant="secondary" size="small" disabled={(result.weight ?? 0) + step > 500} onClick={() => change(blank.key, current => { const weight = Math.round(((current.weight ?? 0) + step) * 100) / 100; return weight <= 500 ? { ...current, weight } : current })}>+{number(step, 2)} kg</Button>)}</div></div>}
+              {blank.movement.loaded && <div><label>Βάρος (kg / αλτήρα)<input type="number" inputMode="decimal" min="0" max="500" step="any" required value={result.weight ?? ''} onChange={event => { const weight = event.target.value === '' ? null : Number(event.target.value); change(blank.key, current => ({ ...current, weight })) }} /></label><WeightButtons value={result.weight} label={label} onAdjust={delta => change(blank.key, current => {
+                const weight = Math.round(((current.weight ?? 0) + delta) * 100) / 100
+                return Number.isFinite(weight) && weight >= 0 && weight <= 500 ? { ...current, weight } : current
+              })} /></div>}
               <div><label>{blank.movement.metric === 'seconds' ? 'Δευτερόλεπτα' : 'Επαναλήψεις'}<input type="number" inputMode="numeric" min="1" max="3600" step="1" required value={result.value ?? ''} onChange={event => { const value = event.target.value === '' ? null : Number(event.target.value); change(blank.key, current => ({ ...current, value })) }} /></label><ValueButtons value={result.value} metric={blank.movement.metric} label={label} onAdjust={delta => adjust('value', delta)} /></div>
               {blank.movement.unilateral && <div className="editor-other-side"><label>Άλλη πλευρά<input type="number" inputMode="numeric" min="1" max="3600" step="1" placeholder="Ίδιες επαναλήψεις" value={result.otherSide ?? ''} onChange={event => { const otherSide = event.target.value === '' ? null : Number(event.target.value); change(blank.key, current => ({ ...current, otherSide })) }} /></label><ValueButtons value={result.otherSide ?? result.value} metric="reps" label={`Άλλη πλευρά ${label}`} onAdjust={delta => adjust('otherSide', delta)} /></div>}
             </div>}

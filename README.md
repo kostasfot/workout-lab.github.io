@@ -4,7 +4,7 @@ A Greek training dashboard for a coach, Άννα, and Δήμητρα. Built for 
 
 The workbook's second sheet supplies three strength routines. Both athletes start opposite exercises, swap without resting, then take a manually started rest. Dumbbell loads are kilograms per dumbbell. TRX curls and triceps extensions have separate entries; slash alternatives are selectable. Weight measurements and goals start empty.
 
-Exercise entry has **+1.25 kg / +2.5 kg** load buttons, **±1 / ±5** reps, and **±5 / ±10** seconds, independently for each athlete. The coach can edit saved workout dates and actual results, delete history with confirmation, or discard an active workout without saving it. Starting another routine offers resume or confirmed replacement of the active draft. These changes work offline and sync on reconnection. Apply the database updates described in the Supabase guide to enable cloud deletion and draft discard.
+The blue start button opens a workout selector for any of the three routines. Exercise entry and saved-workout editing have **±1.25 kg / ±2.5 kg** load buttons, **±1 / ±5** reps, and **±5 / ±10** seconds, independently for each athlete. Weight controls stop at zero and preserve quarter-kilogram precision. The coach can edit saved workout dates and actual results, delete history with confirmation, or discard an active workout without saving it. Starting another routine offers resume or confirmed replacement of the active draft. These changes work offline and sync on reconnection. Apply the database updates described in the Supabase guide to enable cloud deletion and draft discard.
 
 ## Run locally
 

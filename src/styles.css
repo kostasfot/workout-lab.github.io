@@ -201,6 +201,8 @@ form > label { margin-bottom: 16px; }
 .active-summary { margin-top: 20px; padding: 18px; }
 .active-summary > div:first-child { display: flex; gap: 9px; align-items: center; font-size: 11px; margin-bottom: 14px; }
 .active-summary > div:first-child > span { margin-left: auto; color: var(--muted); }
+.workout-routine-choice { margin-bottom: 20px; }
+.workout-routine-choice select { font-size: 12px; }
 .participant-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 19px; }
 .participant-choice label { flex-direction: row; align-items: center; padding: 16px; border: 1px solid var(--border); border-radius: 12px; gap: 10px; }
 .participant-choice label.selected { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); background: var(--primary-soft); }
@@ -250,10 +252,9 @@ form > label { margin-bottom: 16px; }
 .exercise-input-group { min-width: 0; }
 .value-increments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .value-increments .button { min-height: 44px; padding: 8px 5px; font-size: 11px; }
-.weight-increments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.weight-increments .button { flex: 1; min-height: 44px; padding: 8px 6px; font-size: 10px; }
+.weight-increments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.weight-increments .button { min-height: 44px; padding: 8px 5px; font-size: 10px; }
 @media (max-width: 680px) { .weight-input-group > label, .exercise-input-group > label { font-size: 10px; } }
-@media (max-width: 480px) { .weight-increments { flex-direction: column; } .weight-increments .button { font-size: 10px; } }
 .result-inputs input { font-size: 24px; font-weight: 550; padding: 14px; margin-top: 3px; min-height: 65px; letter-spacing: -.6px; text-align: center; }
 .result-inputs.single-input { grid-template-columns: 1fr; }
 .result-inputs .other-side-input { grid-column: 1 / -1; }

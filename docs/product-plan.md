@@ -23,7 +23,7 @@ The three routines are named Προπόνηση 1, 2, and 3 to avoid confusing r
 
 ## Live training
 
-1. Coach selects a routine and the athletes present.
+1. The blue start button opens a popup where the coach selects any routine and the athletes present. Routine cards preselect their routine in the same popup; the coach can change it before starting.
 2. Άννα starts slot 1; Δήμητρα starts slot 2. Their panels remain in fixed positions.
 3. Coach logs actual reps or seconds and load for each movement independently.
 4. Both complete their assigned movements, then coach presses **Αλλαγή ασκήσεων**. There is no intervening rest.
@@ -34,7 +34,7 @@ Each movement must be recorded or explicitly skipped before advancing. The two T
 
 Loads mean **kg per dumbbell**. Unilateral reps mean per leg/arm, with an optional different count for the other side. Actual results are separate from prescribed targets. Starting, stopping, or finishing a timer does not fill a result or advance the workout. New sets start with empty actual values and show previous results as suggestions.
 
-Each loaded exercise has **+1.25 kg** and **+2.5 kg** controls. They add to that athlete's entered load, or start from zero when it is empty, and preserve quarter-kilogram precision. Recorded sets lock these controls until the coach reopens the record for editing.
+Each loaded exercise has **−2.5 kg, −1.25 kg, +1.25 kg, +2.5 kg** controls, also available in saved-workout editing. They adjust only that athlete's entered load, use zero as the starting value when empty, and preserve quarter-kilogram precision. Adjustments that would go below zero or above 500 kg are disabled. Recorded live sets lock these controls until the coach reopens the record for editing.
 
 Rep entry has **−5, −1, +1, +5** controls; seconds entry has **−10, −5, +5, +10**. Direct typing remains available. Optional other-side counts adjust independently, starting from the main count when blank. Counts stay between 1 and 3600, and recorded sets lock all adjustments. Changing logged seconds never starts or changes a work timer.
 
@@ -68,4 +68,4 @@ Program edits create a new version for future workouts. Existing active and comp
 
 ## Implementation and verification status
 
-The interface, offline store, migrations, and bootstrap are implemented. The coach reported successful initial migration/bootstrap and that the live application and history deletion work. Migration 003 requires applying in Supabase to enable draft discard and corrected dates in shared comparisons. Authenticated browser tests use test responses, and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation; current checks are recorded in the deployment guide.
+The interface, offline store, migrations, and bootstrap are implemented. The coach reported that the live application works and supplied successful SQL checks for the base schema, history deletion, discard capability, and completed-workout discard guard after applying migration 003. Workout selection and signed weight adjustments use that existing database setup. Authenticated browser tests use test responses, and database permissions are verified in PostgreSQL. Hosting and environment publication are separate from local validation; current checks are recorded in the deployment guide.
