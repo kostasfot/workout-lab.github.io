@@ -34,6 +34,10 @@ Each movement must be recorded or explicitly skipped before advancing. The two T
 
 Loads mean **kg per dumbbell**. Unilateral reps mean per leg/arm, with an optional different count for the other side. Actual results are separate from prescribed targets. Starting, stopping, or finishing a timer does not fill a result or advance the workout. New sets start with empty actual values and show previous results as suggestions.
 
+**Ίδιο με πριν** fills editable weight, reps/seconds, and optional other-side values for that athlete and exercise. It prefers the most recent completed earlier round in the current station, then the last completed set in the latest saved workout. Skipped, unrecorded, deleted, incompatible-unit, and other-athlete results are excluded. Copying never marks a set completed. The coach can adjust and explicitly record it.
+
+**Καταγραφή και των δύο** saves all valid pending movements of the current phase in one local transaction and one workout synchronization record. Both athletes must be present. Existing individually completed or skipped results remain intact; both TRX movements are included. Missing/invalid values disable shared recording. Individual recording and explicit swaps remain available.
+
 Each loaded exercise has **−2.5 kg, −1.25 kg, +1.25 kg, +2.5 kg** controls, also available in saved-workout editing. They adjust only that athlete's entered load, use zero as the starting value when empty, and preserve quarter-kilogram precision. Adjustments that would go below zero or above 500 kg are disabled. Recorded live sets lock these controls until the coach reopens the record for editing.
 
 Rep entry has **−5, −1, +1, +5** controls; seconds entry has **−10, −5, +5, +10**. Direct typing remains available. Optional other-side counts adjust independently, starting from the main count when blank. Counts stay between 1 and 3600, and recorded sets lock all adjustments. Changing logged seconds never starts or changes a work timer.
@@ -41,6 +45,8 @@ Rep entry has **−5, −1, +1, +5** controls; seconds entry has **−10, −5, 
 ## Timers and completion
 
 The persistent timer button opens a popup for configurable rest or prescribed work timers. Every timer starts manually. Closing the popup preserves it. Pausing and resetting are explicit. Minimal rest has no preset. Each athlete can have a work timer; the coach can start both together.
+
+After the swapped pair is recorded or skipped, **Έναρξη διαλείμματος** manually starts the station's preset and opens a dedicated rest view. It shows a large countdown and the upcoming athletes' exercises, station, and round. The coach can pause, resume, reset, or explicitly restart with a different duration. Finishers open the view with no preset and no running timer; choosing a duration alone never starts it. Closing/reloading preserves the timer and associates it with the current round. Timer expiry never advances or records anything. **Συνέχεια** explicitly advances and clears that rest timer while preserving work timers; the final round opens the existing save confirmation. The coach can also use the existing next-round/next-station button. Completing or discarding the workout clears its timers.
 
 Completing a workout saves its date, participants, program snapshot, selected movements, rounds, actual values, and skipped results. Early completion creates a partial record. Coach can edit the training date and both athletes' weights, reps, seconds, other-side counts, and completed/skipped/unrecorded status. Edits apply to actual results and preserve the prescribed program and original start/completion timestamps. Cancelling the editor saves nothing. Corrected dates determine history order, recent activity, team comparison dates, and CSV filenames. Settings offers an account-scoped JSON backup.
 

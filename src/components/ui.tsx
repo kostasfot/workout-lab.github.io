@@ -10,8 +10,8 @@ export function Button({ className, variant, size, ...props }: ButtonHTMLAttribu
 }
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) { return <div className={cn('card', className)} {...props} /> }
 export function Badge({ children, className }: { children: ReactNode; className?: string }) { return <span className={cn('badge', className)}>{children}</span> }
-export function Modal({ open, onOpenChange, title, description, children, wide = false }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; wide?: boolean }) {
-  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="modal-overlay" /><Dialog.Content className={cn('modal', wide && 'modal-wide')} {...(!description ? { 'aria-describedby': undefined } : {})}>
+export function Modal({ open, onOpenChange, title, description, children, wide = false, className }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; wide?: boolean; className?: string }) {
+  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="modal-overlay" /><Dialog.Content className={cn('modal', wide && 'modal-wide', className)} {...(!description ? { 'aria-describedby': undefined } : {})}>
     <div className="modal-heading"><div><Dialog.Title>{title}</Dialog.Title>{description && <Dialog.Description>{description}</Dialog.Description>}</div><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Κλείσιμο"><X size={20} /></Button></Dialog.Close></div>{children}
   </Dialog.Content></Dialog.Portal></Dialog.Root>
 }

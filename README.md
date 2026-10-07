@@ -6,6 +6,8 @@ The workbook's second sheet supplies three strength routines. Both athletes star
 
 The blue start button opens a workout selector for any of the three routines. Exercise entry and saved-workout editing have **±1.25 kg / ±2.5 kg** load buttons, **±1 / ±5** reps, and **±5 / ±10** seconds, independently for each athlete. Weight controls stop at zero and preserve quarter-kilogram precision. The coach can edit saved workout dates and actual results, delete history with confirmation, or discard an active workout without saving it. Starting another routine offers resume or confirmed replacement of the active draft. These changes work offline and sync on reconnection. Apply the database updates described in the Supabase guide to enable cloud deletion and draft discard.
 
+Live exercises offer **Ίδιο με πριν** to copy that athlete's most recent completed earlier round, falling back to her latest saved values for the same exercise. Copying fills editable values without recording them. **Καταγραφή και των δύο** records all valid pending movements in the current pair together, preserving individually recorded/skipped entries and keeping swaps manual. After both exercises, **Έναρξη διαλείμματος** opens a large countdown with the upcoming exercises and round; **Συνέχεια** explicitly advances. Finishers have no rest preset. The rest view survives reloads and works offline. These features use the existing database and need no additional migration.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this repository:
