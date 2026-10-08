@@ -47,6 +47,8 @@ test('reuse fills separate athlete values without recording and survives reload,
   await expect(anna.getByRole('button', { name: 'Ίδιο με πριν' })).toBeDisabled()
   await page.getByRole('button', { name: 'Ολοκλήρωση', exact: true }).click()
   await page.getByRole('button', { name: 'Αποθήκευση & τέλος', exact: true }).click()
+  await expect(page).toHaveURL(/#\/history\?session=/)
+  await expect(page.getByRole('dialog', { name: 'Προπόνηση 1', exact: true })).toBeVisible()
   await page.goto('/#/'); await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση', exact: true }).click()
   await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
   await anna.getByRole('button', { name: 'Ίδιο με πριν' }).click()
