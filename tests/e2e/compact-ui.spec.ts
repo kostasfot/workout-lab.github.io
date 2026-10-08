@@ -1,5 +1,75 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator } from '@playwright/test'
 import { mockAccount } from './fixtures/cloud'
+
+test('recording one athlete stays reliable while the other athlete has focused quick choices', async ({ page }, testInfo) => {
+  const { workout } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
+  await page.goto(`/#/workout/${workout.id}`)
+  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
+  const record = (panel: Locator) => {
+    const button = panel.getByRole('button', { name: 'Καταγραφή', exact: true })
+    return testInfo.project.use.hasTouch ? button.tap() : button.click()
+  }
+  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
+  await dimitra.getByLabel(/^Επαναλήψεις/).fill('11')
+  await expect(dimitra.getByRole('group', { name: 'Γρήγορες τιμές Δήμητρα TRX Rows επαναλήψεις', exact: true })).toBeVisible()
+  await record(anna)
+  await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(dimitra.getByText('Έγινε', { exact: true })).toHaveCount(0)
+  await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('11')
+  await anna.getByRole('button', { name: 'Αλλαγή καταγραφής', exact: true }).click()
+  await expect(anna.getByRole('button', { name: 'Καταγραφή', exact: true })).toBeEnabled()
+  await dimitra.getByLabel(/^Επαναλήψεις/).focus()
+  await dimitra.getByRole('button', { name: 'Χρήση 11 επ. Δήμητρα TRX Rows επαναλήψεις', exact: true }).focus()
+  await record(anna)
+  await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
+  await record(dimitra)
+  await expect(dimitra.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeEnabled()
+  await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3', exact: true })).toBeVisible()
+})
+
+test('compact adjustments remember selected steps without filling or recording results', async ({ page }, testInfo) => {
+  const { workout, requests } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
+  await page.goto(`/#/workout/${workout.id}`)
+  await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
+  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
+  const weight = anna.locator('.weight-increments'), reps = anna.locator('.value-increments')
+  await expect(weight.getByRole('combobox')).toHaveValue('1.25')
+  await expect(reps.getByRole('combobox')).toHaveValue('1')
+  await weight.getByRole('combobox').selectOption('2.5')
+  await reps.getByRole('combobox').selectOption('5')
+  await expect(dimitra.locator('.value-increments').getByRole('combobox')).toHaveValue('5')
+  await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('')
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeDisabled()
+  expect(requests).toHaveLength(0)
+  await page.reload()
+  await expect(weight.getByRole('combobox')).toHaveValue('2.5')
+  await expect(reps.getByRole('combobox')).toHaveValue('5')
+  await weight.getByRole('button', { name: /^Αύξηση/ }).click()
+  await reps.getByRole('button', { name: /^Αύξηση/ }).click({ clickCount: 2 })
+  await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('2.5')
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
+  await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  await dimitra.getByLabel(/^Επαναλήψεις/).focus()
+  await dimitra.getByRole('button', { name: 'Χρήση 11 επ. Δήμητρα TRX Rows επαναλήψεις', exact: true }).click()
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
+  await dimitra.getByRole('heading', { name: 'Δήμητρα', exact: true }).click()
+  await page.evaluate(() => scrollTo(0, 0))
+  for (const control of await page.locator('.step-adjuster').getByRole('button').all()) {
+    const box = (await control.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44)
+    expect(await control.evaluate(el => getComputedStyle(el).fontSize)).toBe('19px')
+    if (page.viewportSize()!.width >= 680) expect(box.y + box.height).toBeLessThan(page.viewportSize()!.height - 100)
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('compact-controls.png') })
+  await page.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true }).click()
+  await expect(dimitra.getByRole('heading', { name: 'Goblet Squats', exact: true })).toBeVisible()
+  await expect(dimitra.locator('.weight-increments').getByRole('combobox')).toHaveValue('2.5')
+  await expect(dimitra.getByLabel(/^Βάρος/)).toHaveValue('')
+})
 
 test('compact header keeps round flow and exits available, with keyboard-accessible confirmed actions', async ({ page }, testInfo) => {
   const { workout, requests } = await mockAccount(page, 'coach', true, { active: true })
@@ -80,8 +150,10 @@ test('compact panel alternatives remain selectable and targets remain in seconds
   await expect(dimitra.getByRole('heading', { name: 'Plank Hip Dips', exact: true })).toBeVisible()
   await expect(dimitra.getByLabel('Στόχος Δήμητρα Plank Hip Dips', { exact: true })).toHaveText('40 δευτ.')
   if (page.viewportSize()!.width >= 680) {
-    const a = (await anna.getByLabel(/^Διάρκεια/).boundingBox())!, d = (await dimitra.getByLabel(/^Διάρκεια/).boundingBox())!
-    expect(Math.abs(a.y - d.y)).toBeLessThan(2)
+    await expect.poll(async () => {
+      const a = await anna.getByLabel(/^Διάρκεια/).boundingBox(), d = await dimitra.getByLabel(/^Διάρκεια/).boundingBox()
+      return a && d ? Math.abs(a.y - d.y) : Infinity
+    }).toBeLessThan(2)
   }
   await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Διάρκεια/).fill('40'); await dimitra.getByLabel(/^Διάρκεια/).fill('40')
   await page.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true }).click()

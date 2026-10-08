@@ -1,3 +1,4 @@
+import { clickAdjustment } from './fixtures/adjustments'
 import { test, expect, type Page } from '@playwright/test'
 import { mockAccount, synchronize } from './fixtures/cloud'
 import { requiredResults } from '../../src/lib/model'
@@ -42,7 +43,7 @@ test('reuse fills separate athlete values without recording and survives reload,
   await context.setOffline(false); await page.reload()
   await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('6.25')
   await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('12')
-  await anna.getByRole('button', { name: 'Αύξηση 1 επαναλήψεων Άννα Goblet Squats', exact: true }).click()
+  await clickAdjustment(anna, 'Αύξηση 1 επαναλήψεων Άννα Goblet Squats')
   await recordPairIndividually(page)
   await expect(anna.getByRole('button', { name: 'Ίδιο με πριν' })).toBeDisabled()
   await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()

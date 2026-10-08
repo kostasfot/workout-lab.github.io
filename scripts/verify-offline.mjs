@@ -46,13 +46,13 @@ try {
   await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση' }).click()
   await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna')
-  await anna.getByRole('button', { name: 'Αύξηση 1.25 kg Άννα Goblet Squats', exact: true }).click()
-  await anna.getByRole('button', { name: 'Αύξηση 2.5 kg Άννα Goblet Squats', exact: true }).click()
+  await clickAdjustment(anna, 'Αύξηση 1.25 kg Άννα Goblet Squats')
+  await clickAdjustment(anna, 'Αύξηση 2.5 kg Άννα Goblet Squats')
   await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('3.75')
-  await anna.getByRole('button', { name: 'Μείωση 1.25 kg Άννα Goblet Squats', exact: true }).click()
+  await clickAdjustment(anna, 'Μείωση 1.25 kg Άννα Goblet Squats')
   await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('2.5')
-  await anna.getByRole('button', { name: 'Αύξηση 1.25 kg Άννα Goblet Squats', exact: true }).click()
-  await anna.getByRole('button', { name: 'Αύξηση 5 επαναλήψεων Άννα Goblet Squats', exact: true }).click({ clickCount: 2 })
+  await clickAdjustment(anna, 'Αύξηση 1.25 kg Άννα Goblet Squats')
+  await clickAdjustment(anna, 'Αύξηση 5 επαναλήψεων Άννα Goblet Squats', { clickCount: 2 })
   await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
   await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
   await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
@@ -87,7 +87,7 @@ try {
   await page.getByRole('button', { name: 'Επεξεργασία προπόνησης', exact: true }).click()
   const editor = page.getByRole('dialog', { name: 'Επεξεργασία προπόνησης', exact: true })
   await editor.getByLabel('Ημερομηνία προπόνησης').fill('2026-10-01')
-  await editor.getByRole('region', { name: 'Άννα Goblet Squats σετ 1', exact: true }).getByRole('button', { name: /^Αύξηση 1 επαναλήψεων/ }).click()
+  await clickAdjustment(editor.getByRole('region', { name: 'Άννα Goblet Squats σετ 1', exact: true }), 'Αύξηση 1 επαναλήψεων Άννα Goblet Squats σετ 1')
   await editor.getByRole('button', { name: 'Αποθήκευση αλλαγών', exact: true }).click()
   await expect(page.getByText('3,75 kg / αλτήρα · 11 επ.', { exact: true })).toBeVisible()
   await page.reload()
@@ -108,7 +108,9 @@ try {
   await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση', exact: true }).click()
   await page.getByLabel('Επιλογή προπόνησης').selectOption({ index: 2 })
   await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
+  await anna.locator('.value-increments').getByRole('combobox').selectOption('10')
   await anna.getByRole('button', { name: /^Αύξηση 10 δευτερολέπτων/ }).click()
+  await anna.locator('.value-increments').getByRole('combobox').selectOption('5')
   await anna.getByRole('button', { name: /^Αύξηση 5 δευτερολέπτων/ }).click()
   await expect(anna.getByLabel(/^Διάρκεια/)).toHaveValue('15')
   await page.reload()
@@ -180,4 +182,11 @@ try {
     if (server.exitCode === null) { server.kill(); await stopped }
   }
   await rm(output, { recursive: true, force: true })
+}
+
+async function clickAdjustment(root, action, options) {
+  const match = action.match(/^(Αύξηση|Μείωση) (\d+(?:\.\d+)?) (kg|επαναλήψεων|δευτερολέπτων) (.+)$/)
+  if (!match) throw new Error(`Unknown adjustment: ${action}`)
+  await root.getByRole('combobox', { name: `Βήμα ${match[3] === 'kg' ? 'βάρους' : match[3]} ${match[4]}`, exact: true }).selectOption(match[2])
+  await root.getByRole('button', { name: action, exact: true }).click(options)
 }

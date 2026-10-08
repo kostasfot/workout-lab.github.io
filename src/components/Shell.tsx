@@ -7,9 +7,10 @@ import { useAuth } from '../context/Auth'
 import { useWorkspace } from '../context/Workspace'
 import { formatDate } from '../lib/model'
 import { TrainingModeProvider, useTrainingMode } from '../context/TrainingMode'
+import { IncrementsProvider } from '../context/Increments'
 
 const mainLinks = [{ to: '/', label: 'Επισκόπηση', icon: LayoutDashboard }, { to: '/history', label: 'Ιστορικό', icon: History }, { to: '/progress', label: 'Πρόοδος', icon: ChartNoAxesCombined }, { to: '/program', label: 'Πρόγραμμα', icon: Dumbbell }]
-export function Shell() { return <TrainingModeProvider><ShellLayout /></TrainingModeProvider> }
+export function Shell() { return <IncrementsProvider><TrainingModeProvider><ShellLayout /></TrainingModeProvider></IncrementsProvider> }
 function ShellLayout() {
   const { active: training } = useTrainingMode()
   const { identity, local, signOut } = useAuth(), { data, pending, syncing, online, sync, error, clearError } = useWorkspace()
