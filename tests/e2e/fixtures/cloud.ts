@@ -3,7 +3,7 @@ import { emptyWorkspace } from '../../../src/lib/program'
 import { createWorkout, finishWorkout, requiredResults, workoutDate, type Workspace } from '../../../src/lib/model'
 import { AccountError, createAccountHandler, type Profile, type AccountInfo } from '../../../supabase/functions/manage-users/handler'
 
-export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spectator', enabled = true, options: { active?: boolean; routine?: number; workoutDiscard?: boolean; accountManagement?: boolean } = {}) {
+export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spectator', enabled = true, options: { active?: boolean; routine?: number; workoutDiscard?: boolean; accountManagement?: boolean; configureWorkout?: (workout: Workspace['workouts'][number]) => void } = {}) {
   const userId = role === 'coach' ? '10000000-0000-0000-0000-000000000001' : role === 'athlete' ? '10000000-0000-0000-0000-000000000002' : '10000000-0000-0000-0000-000000000004', teamId = '20000000-0000-0000-0000-000000000001'
   const remote = emptyWorkspace()
   remote.historyDeletion = enabled; remote.workoutDiscard = options.workoutDiscard ?? enabled; remote.deletedRecords = []; remote.program.revision = 1
@@ -19,6 +19,7 @@ export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spect
   let workout = createWorkout(remote.program.routines[options.routine ?? 0], remote.program.id)
   for (const r of requiredResults(workout, true)) workout.results[r.key] = { ...r, status: 'completed', weight: r.movement.loaded ? 6.25 : null, value: 10 }
   workout = { ...(options.active ? workout : finishWorkout(workout)), revision: 1 }
+  options.configureWorkout?.(workout)
   remote.workouts = [workout]
   remote.notes = [{ id: crypto.randomUUID(), workoutId: workout.id, athlete: 'anna', text: 'private note', revision: 1 }]
   remote.weighIns = ['anna', 'dimitra'].map((athlete, i) => ({ id: crypto.randomUUID(), athlete: athlete as 'anna' | 'dimitra', date: '2026-10-01', weight: 100 + i, revision: 1, createdAt: '2026-10-01T09:00:00Z' }))

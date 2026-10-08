@@ -7,7 +7,7 @@ import { Button, Modal } from './ui'
 
 export const restContext = (w: Workout) => `${w.id}:${w.stationIndex}:${w.roundIndex}:${w.phase}`
 
-export function RestView({ workout, ready, last, onContinue }: { workout: Workout; ready: boolean; last: boolean; onContinue: () => Promise<boolean> }) {
+export function RestView({ workout, ready, last, onContinue, primary = false }: { workout: Workout; ready: boolean; last: boolean; onContinue: () => Promise<boolean>; primary?: boolean }) {
   const timer = useTimer(), context = restContext(workout), station = workout.routine.stations[workout.stationIndex]
   const job = timer.jobs.find(j => j.id === 'rest' && j.context === context)
   const [open, setOpen] = useState(Boolean(job)), [duration, setDuration] = useState(job ? String(job.duration) : station.rest === null ? '' : String(station.rest))
@@ -20,7 +20,7 @@ export function RestView({ workout, ready, last, onContinue }: { workout: Workou
     if (!job && station.rest !== null) timer.startRest(station.rest, context)
   }
   return <>
-    <Button variant="secondary" disabled={!ready || busy} onClick={show}><Timer size={17} />{job ? 'Προβολή διαλείμματος' : station.rest === null ? 'Διάλειμμα' : 'Έναρξη διαλείμματος'}</Button>
+    <Button variant={primary ? 'primary' : 'secondary'} disabled={!ready || busy} onClick={show}><Timer size={17} />{job ? 'Προβολή διαλείμματος' : station.rest === null ? 'Διάλειμμα' : 'Έναρξη διαλείμματος'}</Button>
     <Modal open={open} onOpenChange={value => { if (!busy) setOpen(value) }} title="Διάλειμμα προπόνησης" description={`${station.name} · Γύρος ${workout.roundIndex + 1} / ${station.rounds}. Το παράθυρο μπορεί να κλείσει όσο το χρονόμετρο συνεχίζει.`} wide className="rest-view">
       <div className={`rest-countdown ${done ? 'rest-complete' : ''}`}>
         <span className="eyebrow">{done ? 'ΕΤΟΙΜΟΙ ΓΙΑ ΣΥΝΕΧΕΙΑ' : paused ? 'ΣΕ ΠΑΥΣΗ' : job ? 'ΧΡΟΝΟΣ ΔΙΑΛΕΙΜΜΑΤΟΣ' : 'ΕΛΑΧΙΣΤΟ ΔΙΑΛΕΙΜΜΑ'}</span>

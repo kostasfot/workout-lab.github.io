@@ -561,6 +561,61 @@ tbody tr:last-child td { border: 0; }
 .management-rules h3 { font-size: 15px; margin: 12px 0 8px; }
 .management-rules p { color: var(--muted); font-size: 12px; line-height: 1.9; }
 .account-form { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.workout-heading, .workout-heading-actions { flex-wrap: wrap; }
+.live-main-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.training-mode { grid-template-columns: minmax(0, 1fr); }
+.training-mode .sidebar, .training-mode .bottom-nav, .training-mode .topbar, .training-mode .page-footer, .training-mode .workout-heading, .training-mode .station-navigation, .training-mode .error-banner { display: none; }
+.training-mode ~ .timer-fab { display: none; }
+.training-mode .page-content { max-width: none; padding: 18px 24px 220px; }
+.training-round-heading { position: sticky; top: 0; z-index: 40; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 18px; margin: 0 0 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.training-round-heading .round-flow { grid-column: 1 / -1; width: 100%; }
+.training-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.training-toolbar .button { min-height: 48px; }
+.training-mode .athlete-panels { gap: 24px; }
+.training-mode .athlete-panel-header { padding: 22px 26px; }
+.training-mode .athlete-panel-header h3 { font-size: 22px; }
+.training-mode .athlete-panel-header div > span { font-size: 13px; }
+.training-mode .athlete-panel-header .avatar { width: 48px; height: 48px; }
+.training-mode .movement-title h4 { font-size: 26px; }
+.training-mode .result-inputs label { font-size: 14px; }
+.training-mode .result-inputs label small { font-size: 11px; }
+.training-mode .result-inputs input { font-size: 36px; min-height: 76px; }
+.training-mode .result-inputs .other-side-input input { font-size: 24px; min-height: 60px; }
+.training-mode .value-increments .button, .training-mode .weight-increments .button, .training-mode .movement-actions .button, .training-mode .quick-choices button { min-height: 48px; font-size: 13px; }
+.training-mode .workout-control { position: fixed; z-index: 45; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; border-inline: 0; padding: 0 24px env(safe-area-inset-bottom); background: var(--surface); box-shadow: 0 -8px 28px #06143410; }
+.training-mode .workout-navigation { padding: 10px 0 16px; }
+.training-mode .workout-navigation .button { min-height: 52px; font-size: 14px; }
+.training-mode .live-main-actions > .button-primary { min-width: 230px; }
+.training-action-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0 0; font-size: 11px; color: var(--muted); }
+.training-action-status strong { font-weight: 550; color: var(--primary); white-space: nowrap; }
+.training-save-error { font-size: 11px; color: #b91c1c; padding-top: 8px; line-height: 1.7; }
+@media (max-width: 680px) {
+  .workout-navigation { flex-wrap: wrap; }
+  .workout-navigation > span { order: 3; width: 100%; text-align: center; }
+  .live-main-actions { flex: 1; }
+  .live-main-actions .button { white-space: normal; }
+  .training-mode .page-content { padding: 12px 14px 250px; }
+  .training-round-heading { padding: 12px; gap: 10px; }
+  .training-round-heading h2 { font-size: 20px; }
+  .training-toolbar { gap: 6px; }
+  .training-toolbar .button { padding: 8px; font-size: 9px; }
+  .training-utility span { display: none; }
+  .training-mode .athlete-panels { gap: 10px; }
+  .training-mode .athlete-panel-header { padding: 15px 12px; flex-wrap: wrap; gap: 8px; }
+  .training-mode .athlete-panel-header .avatar { width: 32px; height: 36px; }
+  .training-mode .athlete-panel-header h3 { font-size: 15px; }
+  .training-mode .athlete-panel-header div > span { font-size: 9px; }
+  .training-mode .movement-title h4 { font-size: 19px; }
+  .training-mode .result-inputs label { font-size: 11px; }
+  .training-mode .result-inputs label small { font-size: 9px; }
+  .training-mode .result-inputs input { font-size: 30px; min-height: 66px; }
+  .training-mode .value-increments .button, .training-mode .weight-increments .button, .training-mode .movement-actions .button { font-size: 11px; }
+  .training-mode .workout-control { padding-inline: 14px; }
+  .training-mode .workout-navigation .button { font-size: 11px; }
+  .training-mode .live-main-actions > .button-primary { min-width: 0; flex: 1; }
+  .training-mode .skip-rest { display: none; }
+  .training-action-status { font-size: 9px; align-items: flex-start; }
+}
 @media (max-width: 900px) { .bottom-nav > a { padding-inline: 6px; flex: 1; min-width: 0; } }
 @media (max-width: 600px) {
   .managed-user { grid-template-columns: 36px minmax(0, 1fr); padding: 18px; gap: 10px; }

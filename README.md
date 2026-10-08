@@ -8,6 +8,8 @@ The blue start button opens a workout selector for any of the three routines. Ex
 
 Live exercises offer **Ίδιο με πριν** to copy that athlete's most recent completed earlier round, falling back to her latest saved values for the same exercise. Copying fills editable values without recording them. **Καταγραφή και των δύο** records all valid pending movements in the current pair together, preserving individually recorded/skipped entries and keeping swaps manual. After both exercises, **Έναρξη διαλείμματος** opens a large countdown with the upcoming exercises and round; **Συνέχεια** explicitly advances. Finishers have no rest preset. The rest view survives reloads and works offline. These features use the existing database and need no additional migration.
 
+The four-step round indicator highlights **ασκήσεις → αλλαγή → ασκήσεις → διάλειμμα**. When both athletes' first-pair values are valid, **Καταγραφή και αλλαγή** records them and swaps in one transaction. Selecting an input reveals quick choices from its prescribed reps/time and that athlete's recent compatible results; choosing a value leaves it editable and unrecorded. **Λειτουργία προπόνησης** hides navigation, enlarges the panels, and pins the round and main action while scrolling. Its preference is saved per account on the device. **Κανονική προβολή** restores navigation; completion or discard also restores it. All timers still start manually.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this repository:
