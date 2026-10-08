@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Flag, MoreHorizontal, Square } from 'lucide-react'
+import { CheckCheck, Flag, MoreHorizontal, Square } from 'lucide-react'
 import { Button } from './ui'
 
-export function WorkoutOptions({ canDiscard, onFinish, onDiscard }: { canDiscard: boolean; onFinish: () => void; onDiscard: () => void }) {
+export function WorkoutOptions({ canDiscard, onFinish, onDiscard, canRecord, onRecord }: { canDiscard: boolean; onFinish: () => void; onDiscard: () => void; canRecord?: boolean; onRecord?: () => void }) {
   const [open, setOpen] = useState(false), id = useId(), root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null)
   const close = () => { setOpen(false); trigger.current?.focus({ preventScroll: true }) }
   useEffect(() => {
@@ -28,6 +28,7 @@ export function WorkoutOptions({ canDiscard, onFinish, onDiscard }: { canDiscard
     }}>
       <Button variant="ghost" role="menuitem" onClick={() => { close(); onFinish() }}><Flag size={18} />Ολοκλήρωση</Button>
       <Button variant="ghost" role="menuitem" className="workout-options-discard" disabled={!canDiscard} onClick={() => { close(); onDiscard() }}><Square size={18} />Διακοπή</Button>
+      {onRecord && <Button variant="ghost" role="menuitem" disabled={!canRecord} onClick={() => { close(); onRecord() }}><CheckCheck size={18} />Καταγραφή και των δύο</Button>}
     </div>}
   </div>
 }

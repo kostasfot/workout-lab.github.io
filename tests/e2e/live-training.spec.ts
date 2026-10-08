@@ -21,6 +21,11 @@ async function fillPair(page: Page, values = ['10', '12'], weight = '6.25') {
 async function recordPairIndividually(page: Page) {
   for (const athlete of ['anna', 'dimitra']) await page.getByTestId(`panel-${athlete}`).getByRole('button', { name: 'Καταγραφή', exact: true }).click()
 }
+async function recordPairWithoutSwap(page: Page) {
+  await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Καταγραφή και των δύο', exact: true }).click()
+  for (const athlete of ['anna', 'dimitra']) await expect(page.getByTestId(`panel-${athlete}`).getByText('Έγινε', { exact: true }).first()).toBeVisible()
+}
 
 test('reuse fills separate athlete values without recording and survives reload, then uses saved history', async ({ page, context }) => {
   await start(page)
@@ -77,7 +82,8 @@ test('both recordings validate the entire pair, preserve individual entries and 
   await context.setOffline(true); await both.click()
   await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
   await expect(dimitra.getByText('Έγινε', { exact: true })).toBeVisible()
-  await expect(both).toBeDisabled()
+  await expect(both).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Έναρξη διαλείμματος', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3' })).toBeVisible()
   expect(requests).toHaveLength(0)
   await context.setOffline(false); await synchronize(page)
@@ -92,18 +98,23 @@ test('both recordings validate the entire pair, preserve individual entries and 
 })
 
 test('record both includes every TRX movement before the swap', async ({ page }) => {
-  const { workout } = await mockAccount(page, 'coach', true, { active: true, routine: 1 })
-  workout.stationIndex = 2; workout.results = {}
+  const { workout } = await mockAccount(page, 'coach', true, { active: true, routine: 1, configureWorkout: w => { w.stationIndex = 2; w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
-  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), both = page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true })
+  const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), both = page.getByRole('menuitem', { name: 'Καταγραφή και των δύο', exact: true })
   await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
   const curls = dimitra.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Biceps Curls', exact: true }) })
   const triceps = dimitra.locator('form').filter({ has: page.getByRole('heading', { name: 'TRX Triceps Extensions', exact: true }) })
   await curls.getByLabel(/^Επαναλήψεις/).fill('9')
+  await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
   await expect(both).toBeDisabled()
-  await triceps.getByLabel(/^Επαναλήψεις/).fill('11'); await both.click()
+  await page.keyboard.press('Escape')
+  await triceps.getByLabel(/^Επαναλήψεις/).fill('11')
+  await recordPairWithoutSwap(page)
   await expect(dimitra.getByText('Έγινε', { exact: true })).toHaveCount(2)
   await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeEnabled()
+  await expect(anna.getByRole('heading', { name: 'Seated Shoulder Press', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
+  await expect(both).toBeDisabled()
 })
 
 test('rest is manually started, pauses and recovers without advancing, then Continue advances once', async ({ page }, info) => {
@@ -112,7 +123,7 @@ test('rest is manually started, pauses and recovers without advancing, then Cont
   await page.getByRole('button', { name: 'Άσκηση', exact: true }).click()
   await page.getByRole('button', { name: 'Έναρξη και για τις δύο', exact: true }).click()
   await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
-  await fillPair(page, ['36', '38']); await page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()
+  await fillPair(page, ['36', '38']); await recordPairWithoutSwap(page)
   await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
   const anna = page.getByTestId('panel-anna')
   await expect(anna.getByRole('heading', { name: 'TRX Y-Fly', exact: true })).toBeVisible()
@@ -168,7 +179,7 @@ test('minimal rest has no preset and final Continue requires explicit workout sa
   await expect(rest.getByRole('timer')).toHaveText('—')
   await rest.getByRole('button', { name: 'Συνέχεια', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Γύρος 2 / 2' })).toBeVisible()
-  await fillPair(page, ['15', '40'], '6'); await page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()
+  await fillPair(page, ['15', '40'], '6'); await recordPairWithoutSwap(page)
   await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
   await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'Plank', exact: true })).toBeVisible()
   await fillPair(page, ['38', '15'], '6'); await page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()

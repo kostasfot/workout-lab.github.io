@@ -12,6 +12,10 @@ The four-step round indicator highlights **ασκήσεις → αλλαγή →
 
 The compact live header keeps station and round on one line with the flow underneath. **Ολοκλήρωση** and **Διακοπή** are in **Επιλογές προπόνησης** and retain confirmation dialogs. Athlete panels show the exercise and target together and align input rows across both athletes, including wrapped titles and exercise alternatives.
 
+Coach notes expand on demand; a small indicator marks an existing note. Previous results and **Ίδιο με πριν** share one compact row. Unilateral exercises reveal the optional other-side input through **Διαφορετική τιμή ανά πλευρά** and open it automatically for different recorded or copied values. Collapsing either disclosure preserves its data.
+
+The live bottom bar groups Back, Timer, and the main action, with specific missing-field feedback for each athlete and a discreet sync indicator. Its main action follows recording/swap, paired recording, manual rest, and completion. Recording the first pair without swapping remains available through **Επιλογές προπόνησης → Καταγραφή και των δύο**. After the second pair, **Χωρίς διάλειμμα** explicitly advances instead of starting rest. Normal and training views share these controls; training mode keeps them visible while scrolling. No additional database migration is needed.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this repository:

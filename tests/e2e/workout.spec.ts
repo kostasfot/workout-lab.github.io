@@ -118,7 +118,7 @@ test('timed routine preserves actual seconds and completes all station rounds', 
       await panel.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
       await expect(panel.getByText('Έγινε', { exact: true })).toBeVisible()
     }
-    await page.locator('.workout-navigation').getByRole('button').last().click()
+    await page.getByRole('button', { name: /^(Αλλαγή ασκήσεων|Επόμενος γύρος|Επόμενος σταθμός|Ολοκλήρωση)$/ }).click()
     if (pair < 11) {
       const nextPair = pair + 1
       await expect(page.getByTestId('panel-anna').getByText(`Άσκηση ${nextPair % 2 + 1} · Σετ ${Math.floor((nextPair % 6) / 2) + 1}`, { exact: true })).toBeVisible()
@@ -143,7 +143,7 @@ test('both TRX movements must be logged before swapping', async ({ page }) => {
       await panel.getByRole('button', { name: 'Παράλειψη', exact: true }).click()
       await expect(panel.getByText('Παράλειψη', { exact: true })).toBeVisible()
     }
-    await page.locator('.workout-navigation').getByRole('button').last().click()
+    await page.getByRole('button', { name: /^(Αλλαγή ασκήσεων|Επόμενος γύρος|Επόμενος σταθμός|Ολοκλήρωση)$/ }).click()
   }
   await expect(page.getByTestId('panel-anna').getByRole('heading', { name: 'Seated Shoulder Press' })).toBeVisible()
   await log(page, 'anna', '10', '4')
