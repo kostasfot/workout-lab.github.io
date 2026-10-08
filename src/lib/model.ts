@@ -95,8 +95,8 @@ export function discardActiveWorkout(workspace: Workspace, id: string): { kind: 
 export function formatDate(value: string, long = false) {
   return new Intl.DateTimeFormat('el-GR', { day: 'numeric', month: long ? 'long' : 'short', year: long ? 'numeric' : undefined, timeZone: 'Europe/Athens' }).format(new Date(value.length === 10 ? value + 'T12:00:00Z' : value))
 }
-export function formatTarget(m: Movement) {
-  return `${m.target}${m.maximum ? `–${m.maximum}` : ''} ${m.metric === 'seconds' ? 'δευτ.' : m.unilateral === 'leg' ? '/ πόδι' : m.unilateral === 'arm' ? '/ χέρι' : 'επαναλήψεις'}`
+export function formatTarget(m: Movement, compact = false) {
+  return `${m.target}${m.maximum ? `–${m.maximum}` : ''} ${m.metric === 'seconds' ? 'δευτ.' : m.unilateral === 'leg' ? '/ πόδι' : m.unilateral === 'arm' ? '/ χέρι' : compact ? 'επ.' : 'επαναλήψεις'}`
 }
 export const slotFor = (athlete: AthleteId, phase: number) => (phase + (athlete === 'dimitra' ? 1 : 0)) % 2
 export function movementsFor(w: Workout, athlete: AthleteId, station: Station, slotIndex: number) {

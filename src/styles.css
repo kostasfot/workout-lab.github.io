@@ -603,6 +603,30 @@ tbody tr:last-child td { border: 0; }
 .workout-options-menu .button { width: 100%; min-height: 48px; justify-content: flex-start; font-size: 13px; }
 .workout-options-menu .workout-options-discard { color: #dc2626; }
 .mode-toggle-short { display: none; }
+.compact-athlete-panels .athlete-panel-header { padding: 12px 18px 4px; gap: 10px; border-bottom: 0; }
+.compact-athlete-panels .athlete-panel-header .avatar { width: 34px; height: 34px; font-size: 13px; }
+.compact-athlete-panels .athlete-panel-header > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; }
+.compact-athlete-panels .athlete-panel-header h3 { font-size: 18px; }
+.compact-athlete-panels .athlete-panel-header div > span { font-size: 10px; }
+.compact-athlete-panels .movement-logger { padding: 12px 18px 16px; }
+.compact-athlete-panels .movement-title { align-items: start; min-height: 0; }
+.compact-athlete-panels .movement-title .badge { flex-shrink: 0; }
+.movement-summary { display: flex; align-items: baseline; gap: 5px 9px; flex-wrap: wrap; min-width: 0; }
+.compact-athlete-panels .movement-title h4 { font-size: 20px; }
+.movement-target { font-size: 12px; color: var(--muted); line-height: 1.6; white-space: nowrap; }
+.compact-athlete-panels .result-inputs { margin-top: 14px; align-self: start; }
+.compact-athlete-panels .previous-entry { align-self: start; }
+.compact-athlete-panels .previous-entry:empty { margin: 0; }
+.compact-athlete-panels .movement-actions { align-self: end; margin-top: 14px; }
+.compact-athlete-panels .coach-note { padding: 0 18px 16px; }
+.compact-athlete-panels .alternative-select { margin: 10px 18px 0; }
+@supports (grid-template-rows: subgrid) {
+  .athlete-panels.compact-athlete-panels { grid-template-rows: repeat(var(--panel-rows), auto); grid-auto-flow: column; row-gap: 0; }
+  .compact-athlete-panels > .athlete-panel { display: grid; grid-template-rows: subgrid; grid-row: 1 / -1; }
+  .compact-athlete-panels .movement-logger { display: grid; grid-template-rows: subgrid; grid-row: span 4; }
+  .compact-athlete-panels .coach-note { grid-row: -2; }
+  .compact-athlete-panels .empty-state { grid-row: 3 / -2; }
+}
 @media (max-width: 680px) {
   .workout-navigation { flex-wrap: wrap; }
   .workout-navigation > span { order: 3; width: 100%; text-align: center; }
@@ -636,6 +660,15 @@ tbody tr:last-child td { border: 0; }
   .training-mode .live-main-actions > .button-primary { min-width: 0; flex: 1; }
   .training-mode .skip-rest { display: none; }
   .training-action-status { font-size: 9px; align-items: flex-start; }
+  .compact-athlete-panels .athlete-panel-header { padding: 12px 12px 4px; }
+  .compact-athlete-panels .athlete-panel-header h3 { font-size: 15px; }
+  .compact-athlete-panels .athlete-panel-header .avatar { width: 28px; height: 30px; }
+  .compact-athlete-panels .athlete-panel-header div > span { font-size: 9px; }
+  .compact-athlete-panels .movement-logger { padding: 10px 12px 14px; }
+  .compact-athlete-panels .movement-title { flex-direction: column; gap: 5px; }
+  .compact-athlete-panels .movement-title h4 { font-size: 17px; }
+  .movement-target { font-size: 11px; }
+  .compact-athlete-panels .coach-note { padding-inline: 12px; }
 }
 @media (max-width: 900px) { .bottom-nav > a { padding-inline: 6px; flex: 1; min-width: 0; } }
 @media (max-width: 600px) {
