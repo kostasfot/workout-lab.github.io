@@ -625,6 +625,31 @@ tbody tr:last-child td { border: 0; }
 .increment-selector { position: relative; display: block; min-width: 0; }
 .increment-selector select { height: 100%; min-height: 48px; margin: 0; padding: 8px 15px 8px 3px; font-size: 13px; font-weight: 550; text-align: center; background: var(--surface); appearance: none; cursor: pointer; }
 .increment-selector > svg { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.compact-athlete-panels .coach-note { align-self: start; }
+.coach-note > summary { display: flex; align-items: center; gap: 7px; min-height: 44px; color: var(--muted); font-size: 11px; cursor: pointer; list-style: none; border-radius: 6px; }
+.coach-note > summary::-webkit-details-marker { display: none; }
+.coach-note > summary > span:first-child { display: flex; align-items: center; gap: 5px; }
+.coach-note .disclosure-chevron { margin-left: auto; flex-shrink: 0; }
+.coach-note[open] .disclosure-chevron, .other-side-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.note-indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+.coach-note > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.coach-note textarea { margin-top: 4px; }
+.other-side-section { grid-column: 1 / -1; min-width: 0; }
+.other-side-section .other-side-toggle { width: 100%; min-height: 44px; gap: 8px; padding: 6px 0; justify-content: flex-start; white-space: normal; font-size: 11px; text-align: left; }
+.other-side-toggle > small { margin-left: auto; color: var(--primary); white-space: nowrap; }
+.other-side-toggle > svg { flex-shrink: 0; margin-left: auto; }
+.other-side-input:not([hidden]) { padding-top: 8px; }
+.compact-athlete-panels .previous-entry { flex-wrap: nowrap; gap: 8px; margin-top: 10px; min-width: 0; }
+.compact-athlete-panels .previous-result { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.compact-athlete-panels .previous-entry > .button { flex-shrink: 0; width: auto; min-height: 44px; font-size: 11px; padding: 8px; white-space: nowrap; }
+@media (max-width: 680px) {
+  .coach-note > summary, .other-side-section .other-side-toggle { font-size: 10px; }
+  .compact-athlete-panels .previous-entry { gap: 5px; }
+  .compact-athlete-panels .previous-result { font-size: 10px; }
+  .compact-athlete-panels .previous-entry > .button { font-size: 9px; padding-inline: 5px; }
+  .compact-athlete-panels .previous-entry > .button > svg { display: none; }
+}
 @supports (grid-template-rows: subgrid) {
   .athlete-panels.compact-athlete-panels { grid-template-rows: repeat(var(--panel-rows), auto); grid-auto-flow: column; row-gap: 0; }
   .compact-athlete-panels > .athlete-panel { display: grid; grid-template-rows: subgrid; grid-row: 1 / -1; }

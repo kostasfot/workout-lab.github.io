@@ -83,6 +83,7 @@ test('unilateral quick choices fill the optional side independently', async ({ p
   await page.goto(`/#/workout/${workout.id}`)
   const anna = page.getByTestId('panel-anna')
   await anna.getByLabel(/^Επαναλήψεις/).fill('11')
+  await anna.getByRole('button', { name: 'Διαφορετική τιμή ανά πλευρά', exact: true }).click()
   await anna.getByLabel(/^Άλλη πλευρά/).focus()
   await anna.getByRole('button', { name: 'Χρήση 10 επ. Άννα Split Squats άλλη πλευρά', exact: true }).click()
   await expect(anna.getByLabel(/^Άλλη πλευρά/)).toHaveValue('10')
