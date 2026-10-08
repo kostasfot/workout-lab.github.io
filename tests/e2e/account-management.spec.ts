@@ -127,6 +127,7 @@ test('membership refresh preserves cached coach access during a temporary server
   await page.evaluate(() => window.dispatchEvent(new Event('online')))
   await expect.poll(() => checked).toBe(true)
   await expect(page.getByTestId('panel-anna')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Διακοπή', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Διακοπή', exact: true })).toBeVisible()
   expect(await page.evaluate(() => Boolean(localStorage.getItem('wl-profile:10000000-0000-0000-0000-000000000001')))).toBe(true)
 })

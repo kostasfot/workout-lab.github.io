@@ -1,11 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X, ArrowUpRight, Trash2 } from 'lucide-react'
-import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useState, type ComponentProps, type HTMLAttributes, type ReactNode } from 'react'
 import { cn } from '../lib/utils'
 
 const buttonStyles = cva('button', { variants: { variant: { primary: 'button-primary', secondary: 'button-secondary', ghost: 'button-ghost', danger: 'button-danger' }, size: { default: '', small: 'button-small', icon: 'button-icon' } }, defaultVariants: { variant: 'primary', size: 'default' } })
-export function Button({ className, variant, size, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonStyles>) {
+export function Button({ className, variant, size, ...props }: ComponentProps<'button'> & VariantProps<typeof buttonStyles>) {
   return <button className={cn(buttonStyles({ variant, size }), className)} {...props} />
 }
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) { return <div className={cn('card', className)} {...props} /> }

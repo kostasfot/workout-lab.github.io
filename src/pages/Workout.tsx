@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Copy, Dumbbell, Flag, LockKeyhole, SkipForward, Trophy, Undo2, Square } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Copy, Dumbbell, LockKeyhole, SkipForward, Trophy, Undo2 } from 'lucide-react'
 import { useWorkspace } from '../context/Workspace'
 import { useAuth } from '../context/Auth'
 import { useTimer } from '../context/Timer'
@@ -11,6 +11,7 @@ import { WeightButtons } from '../components/WeightButtons'
 import { restContext } from '../components/RestView'
 import { WorkoutControls } from '../components/WorkoutControls'
 import { TrainingModeToggle } from '../components/TrainingModeToggle'
+import { WorkoutOptions } from '../components/WorkoutOptions'
 import { useTrainingMode } from '../context/TrainingMode'
 import { RoundFlow } from '../components/RoundFlow'
 import { quickValues, recordAndSwap, type ChoiceField } from '../lib/live'
@@ -53,9 +54,9 @@ export function Workout() {
     if (saved) timer.stop('rest', restContext(workout))
   }
   const recordBoth = async () => { setRecording(true); try { await update(w => w.stationIndex === workout.stationIndex && w.roundIndex === workout.roundIndex && w.phase === workout.phase ? recordTogether(w) : w) } finally { setRecording(false) } }
-  return <><div className="page-heading workout-heading"><div><button className="back-link" onClick={() => navigate('/')}><ArrowLeft size={16} />Επισκόπηση</button><h1>{workout.routine.name}<span className="title-dot">.</span></h1><p>{workout.routine.focus}</p></div><div className="workout-heading-actions">{!training && <TrainingModeToggle />}<Badge className="live-badge"><span className="live-dot" />ΣΕ ΕΞΕΛΙΞΗ</Badge><Button variant="secondary" onClick={() => setFinishing(true)}><Flag size={17} />Ολοκλήρωση</Button><Button variant="danger" disabled={!canDiscard} onClick={() => setDiscarding(true)}><Square size={16} />Διακοπή</Button></div></div>
+  return <><div className="page-heading workout-heading"><div><button className="back-link" onClick={() => navigate('/')}><ArrowLeft size={16} />Επισκόπηση</button><h1>{workout.routine.name}<span className="title-dot">.</span></h1><p>{workout.routine.focus}</p></div><Badge className="live-badge"><span className="live-dot" />ΣΕ ΕΞΕΛΙΞΗ</Badge></div>
     <Card className="station-navigation">{workout.routine.stations.map((s, i) => <div className={`station-step ${i === workout.stationIndex ? 'current' : i < workout.stationIndex ? 'past' : ''}`} key={s.id}><span>{i < workout.stationIndex ? <Check size={16} /> : String(i + 1).padStart(2, '0')}</span><div><strong>{s.name}</strong><small>{s.rounds} γύροι · {s.rest === null ? 'χωρίς preset' : `${s.rest}″ rest`}</small></div></div>)}</Card>
-    <div className={`round-heading ${training ? 'training-round-heading' : ''}`} data-testid="round-header"><div><span className="eyebrow">{station.name.toUpperCase()}{training && ` · ${workout.routine.name}`}</span><h2>Γύρος {workout.roundIndex + 1} <span>/ {station.rounds}</span></h2></div>{training && <div className="training-toolbar"><TrainingModeToggle /><Button variant="secondary" className="training-utility" aria-label="Ολοκλήρωση" onClick={() => setFinishing(true)}><Flag size={18} /><span>Ολοκλήρωση</span></Button><Button variant="danger" className="training-utility" disabled={!canDiscard} aria-label="Διακοπή" onClick={() => setDiscarding(true)}><Square size={17} /><span>Διακοπή</span></Button></div>}<RoundFlow workout={workout} /></div>
+    <div className={`round-heading compact-round-heading ${training ? 'training-round-heading' : ''}`} data-testid="round-header"><div className="round-heading-line"><strong className="round-station">{station.name}</strong><span className="round-separator" aria-hidden="true">·</span><h2>Γύρος {workout.roundIndex + 1} <span>/ {station.rounds}</span></h2></div><div className="training-toolbar"><TrainingModeToggle /><WorkoutOptions canDiscard={canDiscard} onFinish={() => setFinishing(true)} onDiscard={() => setDiscarding(true)} /></div><RoundFlow workout={workout} /></div>
     <div className="athlete-panels">{athleteIds.map(a => <AthletePanel key={a} athlete={a} workout={workout} update={update} present={workout.participants.includes(a)} />)}</div>
     <WorkoutControls workout={workout} ready={ready} canCombine={canCombine} last={last} navigating={navigating} recording={recording} next={next} back={back} recordBoth={recordBoth} />
     <div className="session-progress"><span>Πρόοδος προπόνησης</span><ProgressBar value={state.percent} /><strong>{state.recorded}/{state.total}</strong></div>

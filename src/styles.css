@@ -589,16 +589,37 @@ tbody tr:last-child td { border: 0; }
 .training-action-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0 0; font-size: 11px; color: var(--muted); }
 .training-action-status strong { font-weight: 550; color: var(--primary); white-space: nowrap; }
 .training-save-error { font-size: 11px; color: #b91c1c; padding-top: 8px; line-height: 1.7; }
+.compact-round-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; position: relative; }
+.compact-round-heading.training-round-heading { position: sticky; padding: 12px 16px; }
+.round-heading-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.round-station { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.round-separator { color: var(--muted); }
+.round-heading-line h2 { margin: 0; font-size: 20px; white-space: nowrap; }
+.compact-round-heading .round-flow { grid-column: 1 / -1; width: 100%; }
+.compact-round-heading .round-flow > li { flex-direction: row; gap: 7px; padding: 7px 10px; text-align: left; }
+.compact-round-heading .round-flow small { display: none; }
+.workout-options { position: relative; flex-shrink: 0; }
+.workout-options-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 210px; padding: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; box-shadow: 0 10px 30px #06143420; z-index: 50; }
+.workout-options-menu .button { width: 100%; min-height: 48px; justify-content: flex-start; font-size: 13px; }
+.workout-options-menu .workout-options-discard { color: #dc2626; }
+.mode-toggle-short { display: none; }
 @media (max-width: 680px) {
   .workout-navigation { flex-wrap: wrap; }
   .workout-navigation > span { order: 3; width: 100%; text-align: center; }
   .live-main-actions { flex: 1; }
   .live-main-actions .button { white-space: normal; }
   .training-mode .page-content { padding: 12px 14px 250px; }
-  .training-round-heading { padding: 12px; gap: 10px; }
-  .training-round-heading h2 { font-size: 20px; }
+  .compact-round-heading, .compact-round-heading.training-round-heading { gap: 8px; padding: 10px; }
+  .round-heading-line { gap: 5px; }
+  .round-station, .round-heading-line h2 { font-size: 14px; }
+  .round-heading-line h2 > span { font-size: 12px; }
+  .compact-round-heading .round-flow > li { padding: 7px 3px; gap: 4px; justify-content: center; }
+  .compact-round-heading .round-flow-number { width: 18px; height: 20px; font-size: 9px; }
+  .compact-round-heading .round-flow strong { font-size: 9px; }
   .training-toolbar { gap: 6px; }
   .training-toolbar .button { padding: 8px; font-size: 9px; }
+  .mode-toggle-full { display: none; }
+  .mode-toggle-short { display: inline; }
   .training-utility span { display: none; }
   .training-mode .athlete-panels { gap: 10px; }
   .training-mode .athlete-panel-header { padding: 15px 12px; flex-wrap: wrap; gap: 8px; }

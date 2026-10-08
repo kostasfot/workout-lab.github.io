@@ -23,7 +23,8 @@ test('blue start button lets the coach choose every workout without starting a c
     await expect(page.getByTestId('panel-anna').getByRole('heading', { name: movements[index], exact: true })).toBeVisible()
     await page.reload()
     await expect(page.getByRole('heading', { name: `Προπόνηση ${index + 1}.`, exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Διακοπή', exact: true }).click()
+    await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Διακοπή', exact: true }).click()
     await page.getByRole('dialog', { name: 'Διακοπή χωρίς αποθήκευση', exact: true }).getByRole('button', { name: 'Διακοπή χωρίς αποθήκευση', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Ξεκινήστε προπόνηση', exact: true })).toBeVisible()
   }
