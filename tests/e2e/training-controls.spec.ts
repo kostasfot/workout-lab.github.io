@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test'
+import { mockAccount, synchronize } from './fixtures/cloud'
+
+test('four-step flow and combined save/swap survive reload and synchronize as one workout', async ({ page, context }) => {
+  const { workout, requests, remote } = await mockAccount(page, 'coach', true, { active: true })
+  workout.results = {}
+  await page.goto(`/#/workout/${workout.id}`)
+  const flow = page.getByRole('list', { name: 'Ροή γύρου' }), anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
+  await expect(flow.locator('[aria-current="step"]')).toHaveAttribute('data-step', '0')
+  await expect(page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeDisabled()
+  await anna.getByLabel(/^Βάρος/).fill('6.25'); await anna.getByLabel(/^Επαναλήψεις/).fill('11')
+  await dimitra.getByLabel(/^Επαναλήψεις/).fill('9')
+  const combined = page.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true })
+  await expect(combined).toBeEnabled()
+  await context.setOffline(true); await combined.click({ clickCount: 2 })
+  await expect(anna.getByRole('heading', { name: 'TRX Rows', exact: true })).toBeVisible()
+  await expect(flow.locator('[aria-current="step"]')).toHaveAttribute('data-step', '2')
+  await expect(page.getByRole('heading', { name: 'Γύρος 1 / 3' })).toBeVisible()
+  await context.setOffline(false); await page.reload()
+  await expect(flow.locator('[aria-current="step"]')).toHaveAttribute('data-step', '2')
+  await synchronize(page)
+  const operations = requests.filter(r => r.endpoint === 'save_record' && r.kind === 'workout').map(r => (r as typeof r & { operation_id: string }).operation_id)
+  expect(operations.length).toBeGreaterThan(0)
+  expect(new Set(operations).size).toBe(1) // Reloads may retry the same idempotent operation.
+  expect(remote.workouts[0].phase).toBe(1)
+  expect(Object.values(remote.workouts[0].results).filter(r => r.status === 'completed')).toHaveLength(2)
+  await page.goto(`/#/workout/${workout.id}`)
+  await anna.getByLabel(/^Επαναλήψεις/).fill('12'); await dimitra.getByLabel(/^Βάρος/).fill('7.5'); await dimitra.getByLabel(/^Επαναλήψεις/).fill('10')
+  await page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()
+  await expect(flow.locator('[aria-current="step"]')).toHaveAttribute('data-step', '3')
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('wl-timers:20000000-0000-0000-0000-000000000001:10000000-0000-0000-0000-000000000001') || '[]'))).toEqual([])
+  await page.getByRole('button', { name: 'Πίσω', exact: true }).click()
+  await expect(flow.locator('[aria-current="step"]')).toHaveAttribute('data-step', '1')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
