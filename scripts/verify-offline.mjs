@@ -135,7 +135,7 @@ try {
   await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
   await page.goto(`${url}#/history`)
   await expect(page.getByText('Το ιστορικό σας ξεκινά εδώ.', { exact: true })).toBeVisible()
-  // Focused choices, atomic save/swap, training mode, and rest recovery work with no network.
+  // Direct entry, atomic save/swap, training mode, and rest recovery work with no network.
   await page.goto(`${url}#/`)
   await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση', exact: true }).click()
   await page.getByRole('button', { name: 'Έναρξη προπόνησης', exact: true }).click()
@@ -153,8 +153,8 @@ try {
   await anna.locator('.coach-note > summary').click()
   await expect(note).toHaveValue('Σημείωση χωρίς σύνδεση.')
   await anna.locator('.coach-note > summary').click()
-  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).focus()
-  await anna.getByRole('button', { name: 'Χρήση 10 επ. Άννα Goblet Squats επαναλήψεις', exact: true }).click()
+  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
+  await expect(page.getByRole('group', { name: /^Γρήγορες τιμές/ })).toHaveCount(0)
   await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
   await page.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true }).click()
   await expect(page.getByRole('list', { name: 'Ροή γύρου' }).locator('[aria-current="step"]')).toHaveAttribute('data-step', '2')
@@ -213,7 +213,7 @@ try {
   await expect(otherSide).toBeVisible(); await expect(otherSide).toHaveValue('12')
   await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
   expect(errors).toEqual([])
-  console.log('PASS: production PWA offline reloads, expandable private notes, preserved optional side counts, compact value reuse, clean action bar, focused quick choices, atomic recording/swap, four-step flow, persistent training mode, dedicated rest recovery, weight/reps/seconds adjustments, corrected workout dates, history deletion, replacement/discard, and timer cleanup.')
+  console.log('PASS: production PWA offline reloads, expandable private notes, preserved optional side counts, compact value reuse, clean action bar, direct value entry without suggestions, atomic recording/swap, four-step flow, persistent training mode, dedicated rest recovery, weight/reps/seconds adjustments, corrected workout dates, history deletion, replacement/discard, and timer cleanup.')
 } finally {
   if (browser) await browser.close()
   if (server) {

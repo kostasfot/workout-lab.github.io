@@ -1,7 +1,7 @@
 import { test, expect, type Locator } from '@playwright/test'
 import { mockAccount } from './fixtures/cloud'
 
-test('recording one athlete stays reliable while the other athlete has focused quick choices', async ({ page }, testInfo) => {
+test('recording one athlete stays reliable while the other athlete has a focused input or step selector', async ({ page }, testInfo) => {
   const { workout } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
@@ -11,7 +11,7 @@ test('recording one athlete stays reliable while the other athlete has focused q
   }
   await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
   await dimitra.getByLabel(/^Επαναλήψεις/).fill('11')
-  await expect(dimitra.getByRole('group', { name: 'Γρήγορες τιμές Δήμητρα TRX Rows επαναλήψεις', exact: true })).toBeVisible()
+  await expect(page.getByRole('group', { name: /^Γρήγορες τιμές/ })).toHaveCount(0)
   await record(anna)
   await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
   await expect(dimitra.getByText('Έγινε', { exact: true })).toHaveCount(0)
@@ -19,7 +19,7 @@ test('recording one athlete stays reliable while the other athlete has focused q
   await anna.getByRole('button', { name: 'Αλλαγή καταγραφής', exact: true }).click()
   await expect(anna.getByRole('button', { name: 'Καταγραφή', exact: true })).toBeEnabled()
   await dimitra.getByLabel(/^Επαναλήψεις/).focus()
-  await dimitra.getByRole('button', { name: 'Χρήση 11 επ. Δήμητρα TRX Rows επαναλήψεις', exact: true }).focus()
+  await dimitra.locator('.value-increments').getByRole('combobox').focus()
   await record(anna)
   await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
   await record(dimitra)
@@ -53,7 +53,7 @@ test('compact adjustments remember selected steps without filling or recording r
   await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
   await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
   await dimitra.getByLabel(/^Επαναλήψεις/).focus()
-  await dimitra.getByRole('button', { name: 'Χρήση 11 επ. Δήμητρα TRX Rows επαναλήψεις', exact: true }).click()
+  await dimitra.getByLabel(/^Επαναλήψεις/).fill('11')
   await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
   await dimitra.getByRole('heading', { name: 'Δήμητρα', exact: true }).click()
   await page.evaluate(() => scrollTo(0, 0))

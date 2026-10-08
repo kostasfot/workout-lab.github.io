@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useId, type CSSProperties, type FocusEvent } from 'react'
+import { useEffect, useRef, useState, useId, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Copy, ChevronDown, Dumbbell, SkipForward, Trophy, Undo2 } from 'lucide-react'
 import { useWorkspace } from '../context/Workspace'
@@ -15,8 +15,7 @@ import { TrainingModeToggle } from '../components/TrainingModeToggle'
 import { WorkoutOptions } from '../components/WorkoutOptions'
 import { useTrainingMode } from '../context/TrainingMode'
 import { RoundFlow } from '../components/RoundFlow'
-import { quickValues, recordAndSwap, type ChoiceField } from '../lib/live'
-import { QuickChoices } from '../components/QuickChoices'
+import { recordAndSwap } from '../lib/live'
 import { Button, Card, Badge, EmptyState, Modal, DeleteConfirmation, ProgressBar } from '../components/ui'
 
 export function Workout() {
@@ -60,8 +59,7 @@ export function Workout() {
     <Card className="station-navigation">{workout.routine.stations.map((s, i) => <div className={`station-step ${i === workout.stationIndex ? 'current' : i < workout.stationIndex ? 'past' : ''}`} key={s.id}><span>{i < workout.stationIndex ? <Check size={16} /> : String(i + 1).padStart(2, '0')}</span><div><strong>{s.name}</strong><small>{s.rounds} γύροι · {s.rest === null ? 'χωρίς preset' : `${s.rest}″ rest`}</small></div></div>)}</Card>
     <div className={`round-heading compact-round-heading ${training ? 'training-round-heading' : ''}`} data-testid="round-header"><div className="round-heading-line"><strong className="round-station">{station.name}</strong><span className="round-separator" aria-hidden="true">·</span><h2>Γύρος {workout.roundIndex + 1} <span>/ {station.rounds}</span></h2></div><div className="training-toolbar"><TrainingModeToggle /><WorkoutOptions canDiscard={canDiscard} onFinish={() => setFinishing(true)} onDiscard={() => setDiscarding(true)} onRecord={workout.phase === 0 && athleteIds.every(a => workout.participants.includes(a)) ? () => void recordBoth() : undefined} canRecord={canRecordTogether(workout) && !recording && !navigating} /></div><RoundFlow workout={workout} /></div>
     <div className="athlete-panels compact-athlete-panels" style={{ '--panel-rows': panelRows } as CSSProperties} onPointerDownCapture={e => {
-      // Both cards share row heights: preserve field focus until a tapped action completes,
-      // so collapsing either athlete's quick choices cannot move the other card's button.
+      // Keep the focused numeric field active until a tapped action completes.
       if (e.button === 0 && e.target instanceof Element && e.target.closest('button, summary') && e.currentTarget.contains(document.activeElement) && document.activeElement?.closest('.result-inputs')) e.preventDefault()
     }}>{athleteIds.map(a => <AthletePanel key={a} athlete={a} workout={workout} update={update} present={workout.participants.includes(a)} />)}</div>
     <WorkoutControls workout={workout} ready={ready} canCombine={canCombine} last={last} navigating={navigating} recording={recording} next={next} back={back} recordBoth={recordBoth} />
@@ -79,7 +77,6 @@ function AthletePanel({ athlete, workout, update, present }: { athlete: AthleteI
 }
 function UsersIcon() { return <Dumbbell size={24} /> }
 function MovementLogger({ movement, athlete, workout, slotIndex, update }: { movement: Movement; athlete: AthleteId; workout: WorkoutType; slotIndex: number; update: (fn: (w: WorkoutType) => WorkoutType) => Promise<boolean> }) {
-  const [selected, setSelected] = useState<ChoiceField | null>(null)
   const { data } = useWorkspace(), blank = blankResult(workout, athlete, movement, slotIndex), result = workout.results[blank.key] || blank, recorded = isRecorded(result)
   const previous = previousResult(data.workouts, workout, blank), sideId = useId()
   const differentSide = result.otherSide != null && result.otherSide !== result.value
@@ -93,14 +90,6 @@ function MovementLogger({ movement, athlete, workout, slotIndex, update }: { mov
     return { ...w, results: { ...w.results, [blank.key]: { ...current, weight: movement.loaded ? prior.weight : null, value: prior.value, otherSide: movement.unilateral ? prior.otherSide ?? null : null } } }
   })
   const setResult = (patch: Partial<SetResult>) => update(w => ({ ...w, results: { ...w.results, [blank.key]: { ...(w.results[blank.key] || blank), ...patch } } }))
-  const fieldEvents = (field: ChoiceField) => ({
-    onFocus: (e: FocusEvent<HTMLDivElement>) => { if (e.target instanceof HTMLInputElement) setSelected(field) },
-    onBlur: (e: FocusEvent<HTMLDivElement>) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setSelected(current => current === field ? null : current) },
-  })
-  const choices = (field: ChoiceField) => selected === field && !recorded ? <QuickChoices values={quickValues(data.workouts, workout, blank, field)} field={field} metric={movement.metric} label={`${athletes[athlete].name} ${movement.name} ${field === 'weight' ? 'βάρος' : field === 'otherSide' ? 'άλλη πλευρά' : movement.metric === 'seconds' ? 'διάρκεια' : 'επαναλήψεις'}`} onChoose={value => void update(w => {
-    const current = w.results[blank.key] || blank
-    return isRecorded(current) ? w : { ...w, results: { ...w.results, [blank.key]: { ...current, [field]: value } } }
-  })} /> : null
   const adjustValue = (field: 'value' | 'otherSide', delta: number) => update(w => {
     const current = w.results[blank.key] || blank
     if (isRecorded(current)) return w
@@ -109,14 +98,14 @@ function MovementLogger({ movement, athlete, workout, slotIndex, update }: { mov
     return { ...w, results: { ...w.results, [blank.key]: { ...current, [field]: value } } }
   })
   return <form className={`movement-logger ${recorded ? 'recorded' : ''}`} onSubmit={e => { e.preventDefault(); if (validResult(result)) void setResult({ status: 'completed' }) }}><div className="movement-title"><div className="movement-summary"><h4>{movement.name}</h4><span className="movement-target" aria-label={`Στόχος ${athletes[athlete].name} ${movement.name}`}>{formatTarget(movement, true)}</span></div>{recorded && <Badge className={result.status === 'completed' ? 'complete-badge' : ''}>{result.status === 'completed' ? <Check size={13} /> : <SkipForward size={13} />}{result.status === 'completed' ? 'Έγινε' : 'Παράλειψη'}</Badge>}</div><div className={`result-inputs ${!movement.loaded ? 'single-input' : ''}`}>
-    {movement.loaded && <div className="weight-input-group" {...fieldEvents('weight')}><label htmlFor={`${athlete}-${movement.id}-weight`}>Βάρος <small>kg / αλτήρα</small><input id={`${athlete}-${movement.id}-weight`} type="number" inputMode="decimal" min="0" max="500" step="any" placeholder="—" disabled={recorded} value={result.weight ?? ''} onChange={e => void setResult({ weight: e.target.value === '' ? null : Number(e.target.value) })} /></label>{choices('weight')}<WeightButtons value={result.weight} label={`${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void update(w => {
+    {movement.loaded && <div className="weight-input-group"><label htmlFor={`${athlete}-${movement.id}-weight`}>Βάρος <small>kg / αλτήρα</small><input id={`${athlete}-${movement.id}-weight`} type="number" inputMode="decimal" min="0" max="500" step="any" placeholder="—" disabled={recorded} value={result.weight ?? ''} onChange={e => void setResult({ weight: e.target.value === '' ? null : Number(e.target.value) })} /></label><WeightButtons value={result.weight} label={`${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void update(w => {
       const current = w.results[blank.key] || blank
       if (isRecorded(current)) return w
       const weight = Math.round(((current.weight ?? 0) + delta) * 100) / 100
       if (weight < 0 || weight > 500 || !Number.isFinite(weight)) return w
       return { ...w, results: { ...w.results, [blank.key]: { ...current, weight } } }
     })} /></div>}
-    <div className="exercise-input-group" {...fieldEvents('value')}><label htmlFor={`${athlete}-${movement.id}-value`}>{movement.metric === 'seconds' ? 'Διάρκεια' : 'Επαναλήψεις'}<small>{movement.metric === 'seconds' ? 'δευτερόλεπτα' : movement.unilateral === 'leg' ? 'ανά πόδι' : movement.unilateral === 'arm' ? 'ανά χέρι' : 'πραγματικές'}</small><input id={`${athlete}-${movement.id}-value`} type="number" inputMode="numeric" min="1" max="3600" step="1" placeholder="—" disabled={recorded} value={result.value ?? ''} onChange={e => void setResult({ value: e.target.value === '' ? null : Number(e.target.value) })} /></label>{choices('value')}<ValueButtons value={result.value} metric={movement.metric} label={`${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('value', delta)} /></div>
-    {movement.unilateral && <div className="other-side-section"><Button type="button" variant="ghost" size="small" className="other-side-toggle" aria-expanded={sideExpanded} aria-controls={sideId} onClick={() => setSideExpanded(value => !value)}><span>Διαφορετική τιμή ανά πλευρά</span>{differentSide && <small>{result.otherSide} επ.</small>}<ChevronDown size={14} aria-hidden="true" /></Button><div id={sideId} hidden={!sideExpanded} className="other-side-input exercise-input-group" {...fieldEvents('otherSide')}><label>Άλλη πλευρά <small>προαιρετικά, αν διαφέρει</small><input aria-label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} type="number" inputMode="numeric" min="1" step="1" placeholder="ίδιες επαναλήψεις" disabled={recorded} value={result.otherSide ?? ''} onChange={e => void setResult({ otherSide: e.target.value === '' ? null : Number(e.target.value) })} /></label>{choices('otherSide')}<ValueButtons value={result.otherSide ?? result.value} metric="reps" label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('otherSide', delta)} /></div></div>}
+    <div className="exercise-input-group"><label htmlFor={`${athlete}-${movement.id}-value`}>{movement.metric === 'seconds' ? 'Διάρκεια' : 'Επαναλήψεις'}<small>{movement.metric === 'seconds' ? 'δευτερόλεπτα' : movement.unilateral === 'leg' ? 'ανά πόδι' : movement.unilateral === 'arm' ? 'ανά χέρι' : 'πραγματικές'}</small><input id={`${athlete}-${movement.id}-value`} type="number" inputMode="numeric" min="1" max="3600" step="1" placeholder="—" disabled={recorded} value={result.value ?? ''} onChange={e => void setResult({ value: e.target.value === '' ? null : Number(e.target.value) })} /></label><ValueButtons value={result.value} metric={movement.metric} label={`${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('value', delta)} /></div>
+    {movement.unilateral && <div className="other-side-section"><Button type="button" variant="ghost" size="small" className="other-side-toggle" aria-expanded={sideExpanded} aria-controls={sideId} onClick={() => setSideExpanded(value => !value)}><span>Διαφορετική τιμή ανά πλευρά</span>{differentSide && <small>{result.otherSide} επ.</small>}<ChevronDown size={14} aria-hidden="true" /></Button><div id={sideId} hidden={!sideExpanded} className="other-side-input exercise-input-group"><label>Άλλη πλευρά <small>προαιρετικά, αν διαφέρει</small><input aria-label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} type="number" inputMode="numeric" min="1" step="1" placeholder="ίδιες επαναλήψεις" disabled={recorded} value={result.otherSide ?? ''} onChange={e => void setResult({ otherSide: e.target.value === '' ? null : Number(e.target.value) })} /></label><ValueButtons value={result.otherSide ?? result.value} metric="reps" label={`Άλλη πλευρά ${athletes[athlete].name} ${movement.name}`} disabled={recorded} onAdjust={delta => void adjustValue('otherSide', delta)} /></div></div>}
     </div><div className="previous-entry">{previous && <><span className="previous-result" title={`${previousSource}: ${previousValues}`}><span className="visually-hidden">{previousSource}: </span>{previousValues}</span><Button type="button" variant="secondary" size="small" disabled={recorded} onClick={() => void reuse()}><Copy size={15} />Ίδιο με πριν</Button></>}</div><div className="movement-actions">{recorded ? <Button type="button" variant="secondary" onClick={() => void setResult({ status: 'pending' })}><Undo2 size={16} />Αλλαγή καταγραφής</Button> : <><Button type="button" variant="ghost" size="small" onClick={() => void setResult({ status: 'skipped', weight: null, value: null, otherSide: null })}><SkipForward size={15} />Παράλειψη</Button><Button type="submit" disabled={!validResult(result)}><Check size={16} />Καταγραφή</Button></>}</div></form>
 }

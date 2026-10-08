@@ -33,7 +33,7 @@ export function WorkoutControls({ workout, ready, canCombine, last, navigating, 
   const restView = <RestView key={restContext(workout)} workout={workout} ready={ready && !navigating && !recording} last={last} onContinue={next} primary={!last} />
   const primary = workout.phase === 0 ? nextButton : ready ? last ? nextButton : restView : both ? recordButton : nextButton
   const keepFieldFocus = (event: React.PointerEvent<HTMLElement>) => {
-    // Preserve input/quick-choice focus until a tapped action completes.
+    // Keep the focused numeric field active until a tapped action completes.
     if (event.button === 0 && document.activeElement?.closest('.result-inputs') && event.target instanceof Element && event.target.closest('button')) event.preventDefault()
   }
   return <Card className="workout-control clean-workout-control" data-testid="workout-controls" onPointerDownCapture={keepFieldFocus} aria-busy={navigating || recording}>

@@ -258,12 +258,6 @@ form > label { margin-bottom: 16px; }
 .result-inputs > label { font-size: 11px; }
 .result-inputs label small { color: var(--muted); font-size: 9px; font-weight: 450; display: block; }
 .weight-input-group { min-width: 0; }
-.quick-choices { margin-top: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--primary-soft); }
-.quick-choices > span { display: block; color: var(--muted); font-size: 9px; font-weight: 550; margin-bottom: 7px; }
-.quick-choices > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.quick-choices button { min-height: 44px; padding: 8px 10px; background: var(--surface); color: var(--primary); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; }
-.quick-choices button small { font-size: 9px; font-weight: 450; }
-.quick-choices p { color: var(--muted); font-size: 10px; line-height: 1.7; }
 .weight-input-group > label, .exercise-input-group > label { font-size: 11px; }
 .exercise-input-group { min-width: 0; }
 .value-increments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
@@ -581,7 +575,7 @@ tbody tr:last-child td { border: 0; }
 .training-mode .result-inputs label small { font-size: 11px; }
 .training-mode .result-inputs input { font-size: 36px; min-height: 76px; }
 .training-mode .result-inputs .other-side-input input { font-size: 24px; min-height: 60px; }
-.training-mode .value-increments .button, .training-mode .weight-increments .button, .training-mode .movement-actions .button, .training-mode .quick-choices button { min-height: 48px; font-size: 13px; }
+.training-mode .value-increments .button, .training-mode .weight-increments .button, .training-mode .movement-actions .button { min-height: 48px; font-size: 13px; }
 .training-mode .workout-control { position: fixed; z-index: 45; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; border-inline: 0; padding: 0 24px env(safe-area-inset-bottom); background: var(--surface); box-shadow: 0 -8px 28px #06143410; }
 .training-mode .workout-navigation { padding: 10px 0 16px; }
 .training-mode .workout-navigation .button { min-height: 52px; font-size: 14px; }

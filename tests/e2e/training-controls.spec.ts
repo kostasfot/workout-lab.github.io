@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { createWorkout } from '../../src/lib/model'
 import { mockAccount, synchronize } from './fixtures/cloud'
 
 test('four-step flow and combined save/swap survive reload and synchronize as one workout', async ({ page, context }) => {
@@ -34,43 +33,44 @@ test('four-step flow and combined save/swap survive reload and synchronize as on
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('quick choices follow focus, use own recent loads, and fill editable actuals', async ({ page }) => {
-  const { remote, workout: history } = await mockAccount(page, 'coach')
-  const active = createWorkout(remote.program.routines[0], remote.program.id)
-  remote.workouts.unshift(active)
-  const other = Object.values(history.results).find(r => r.athlete === 'dimitra' && r.movement.id === 'goblet')!
-  other.status = 'completed'; other.value = 12; other.weight = 11.25
-  await page.goto(`/#/workout/${active.id}`)
+test('focusing numeric fields keeps the layout stable without value suggestions, while reuse and typing remain available', async ({ page }) => {
+  const { workout, requests } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.roundIndex = 1 } })
+  await page.goto(`/#/workout/${workout.id}`)
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
-  await expect(page.locator('.quick-choices')).toHaveCount(0)
-  await anna.getByLabel(/^Βάρος/).focus()
-  await expect(page.locator('.quick-choices')).toHaveCount(1)
-  await expect(anna.getByRole('button', { name: 'Χρήση 6,25 kg Άννα Goblet Squats βάρος', exact: true })).toBeVisible()
-  await expect(anna.getByRole('button', { name: /Χρήση 11,25 kg/ })).toHaveCount(0)
-  await anna.getByRole('button', { name: 'Χρήση 6,25 kg Άννα Goblet Squats βάρος', exact: true }).click()
+  const record = anna.getByRole('button', { name: 'Καταγραφή', exact: true })
+  const before = (await record.boundingBox())!
+  for (const input of [anna.getByLabel(/^Βάρος/), anna.getByLabel(/^Επαναλήψεις/), dimitra.getByLabel(/^Επαναλήψεις/)]) {
+    await input.focus()
+    await expect(page.getByRole('group', { name: /^Γρήγορες τιμές/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Χρήση / })).toHaveCount(0)
+    const after = (await record.boundingBox())!
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1)
+  }
+  await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('')
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  expect(requests).toHaveLength(0)
+  await anna.getByRole('button', { name: 'Ίδιο με πριν', exact: true }).click()
   await expect(anna.getByLabel(/^Βάρος/)).toHaveValue('6.25')
-  await anna.getByLabel(/^Επαναλήψεις/).focus()
-  await expect(page.getByRole('button', { name: /Χρήση 6,25 kg/ })).toHaveCount(0)
-  for (const value of ['10', '11', '12']) await expect(anna.getByRole('button', { name: `Χρήση ${value} επ. Άννα Goblet Squats επαναλήψεις`, exact: true })).toBeVisible()
-  await anna.getByRole('button', { name: 'Χρήση 11 επ. Άννα Goblet Squats επαναλήψεις', exact: true }).click()
-  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('11')
+  await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('10')
   await expect(anna.getByText('Έγινε', { exact: true })).toHaveCount(0)
   await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('')
-  await dimitra.getByLabel(/^Επαναλήψεις/).focus()
-  await expect(anna.locator('.quick-choices')).toHaveCount(0)
-  await expect(dimitra.locator('.quick-choices')).toHaveCount(1)
-  await dimitra.getByRole('button', { name: 'Χρήση 12 επ. Δήμητρα TRX Rows επαναλήψεις', exact: true }).click()
-  await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
-  await expect(anna.locator('.quick-choices')).toHaveCount(0)
+  await anna.getByLabel(/^Επαναλήψεις/).fill('11')
+  await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
+  await record.click()
+  await expect(anna.getByText('Έγινε', { exact: true })).toBeVisible()
+  await expect(dimitra.getByLabel(/^Επαναλήψεις/)).toHaveValue('12')
+  await expect(dimitra.getByText('Έγινε', { exact: true })).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('timed quick choices keep timers and the other athlete independent', async ({ page }) => {
+test('timed fields accept direct entry without suggestions or starting timers', async ({ page }) => {
   const { workout } = await mockAccount(page, 'coach', true, { active: true, routine: 2, configureWorkout: w => { w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
   await anna.getByLabel(/^Διάρκεια/).focus()
-  await anna.getByRole('button', { name: 'Χρήση 40 δευτ. Άννα Dumbbell Thrusters διάρκεια', exact: true }).click()
+  await expect(page.getByRole('group', { name: /^Γρήγορες τιμές/ })).toHaveCount(0)
+  await anna.getByLabel(/^Διάρκεια/).fill('40')
   await expect(anna.getByLabel(/^Διάρκεια/)).toHaveValue('40')
   await expect(dimitra.getByLabel(/^Διάρκεια/)).toHaveValue('')
   await page.getByRole('button', { name: 'Άνοιγμα χρονομέτρου', exact: true }).click()
@@ -78,16 +78,19 @@ test('timed quick choices keep timers and the other athlete independent', async 
   await page.getByRole('button', { name: 'Κλείσιμο', exact: true }).click()
 })
 
-test('unilateral quick choices fill the optional side independently', async ({ page }) => {
+test('unilateral fields accept an independent other-side count without suggestions', async ({ page }) => {
   const { workout } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.stationIndex = 2; w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
   const anna = page.getByTestId('panel-anna')
   await anna.getByLabel(/^Επαναλήψεις/).fill('11')
   await anna.getByRole('button', { name: 'Διαφορετική τιμή ανά πλευρά', exact: true }).click()
   await anna.getByLabel(/^Άλλη πλευρά/).focus()
-  await anna.getByRole('button', { name: 'Χρήση 10 επ. Άννα Split Squats άλλη πλευρά', exact: true }).click()
+  await expect(page.getByRole('group', { name: /^Γρήγορες τιμές/ })).toHaveCount(0)
+  await anna.getByLabel(/^Άλλη πλευρά/).fill('10')
   await expect(anna.getByLabel(/^Άλλη πλευρά/)).toHaveValue('10')
   await expect(anna.getByLabel(/^Επαναλήψεις/)).toHaveValue('11')
+  await expect(page.getByTestId('panel-dimitra').getByLabel(/^Επαναλήψεις/)).toHaveValue('')
+  await expect(anna.getByText('Έγινε', { exact: true })).toHaveCount(0)
 })
 
 test('training mode keeps the round and action visible, persists, and restores navigation', async ({ page }, testInfo) => {
@@ -130,8 +133,7 @@ test('training mode records and swaps, opens a manual rest, and permits discardi
   await page.goto(`/#/workout/${workout.id}`)
   await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), controls = page.getByTestId('workout-controls')
-  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).focus()
-  await anna.getByRole('button', { name: 'Χρήση 11 επ. Άννα Goblet Squats επαναλήψεις', exact: true }).click()
+  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('11')
   await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
   await controls.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true }).click()
   await expect(anna.getByRole('heading', { name: 'TRX Rows', exact: true })).toBeVisible()
