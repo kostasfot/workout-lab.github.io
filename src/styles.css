@@ -721,6 +721,13 @@ tbody tr:last-child td { border: 0; }
 .clean-workout-control .bar-skip-rest, .bar-final-rest > .button { min-height: 44px; font-size: 10px; padding: 6px; color: var(--muted); white-space: normal; }
 .training-mode .clean-workout-control { padding: 8px 24px max(12px, env(safe-area-inset-bottom)); }
 .training-mode .page-content { padding-bottom: 160px; }
+.compact-athlete-panels .result-inputs input { height: 52px; min-height: 52px; padding: 6px 8px; font-size: 26px; line-height: 1.2; }
+.compact-athlete-panels .movement-logger { padding: 8px 14px 10px; }
+.compact-athlete-panels .result-inputs { margin-top: 8px; }
+.compact-athlete-panels .movement-actions { margin-top: 8px; }
+.compact-athlete-panels .athlete-panel-header { padding: 8px 14px 4px; }
+.compact-athlete-panels .previous-entry { margin-top: 6px; }
+.compact-athlete-panels .step-adjuster > button.button, .compact-athlete-panels .increment-selector select { min-height: 44px; height: 44px; padding-block: 4px; }
 @media (max-width: 680px) {
   .clean-workout-control, .training-mode .clean-workout-control { padding-inline: 12px; }
   .clean-workout-control .workout-bar-meta { gap: 8px; }
