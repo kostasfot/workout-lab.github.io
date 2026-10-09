@@ -9,6 +9,8 @@ import { number } from '../lib/utils'
 import { ValueButtons } from '../components/ValueButtons'
 import { WeightButtons } from '../components/WeightButtons'
 import { CoachNote } from '../components/CoachNote'
+import { FitAthletePanel } from '../components/FitAthletePanel'
+import { useViewport } from '../lib/useViewport'
 import { restContext } from '../components/RestView'
 import { WorkoutControls } from '../components/WorkoutControls'
 import { TrainingModeToggle } from '../components/TrainingModeToggle'
@@ -19,7 +21,7 @@ import { recordAndSwap } from '../lib/live'
 import { Button, Card, Badge, EmptyState, Modal, DeleteConfirmation, ProgressBar } from '../components/ui'
 
 export function Workout() {
-  const { active: training } = useTrainingMode()
+  const { active: training } = useTrainingMode(), layout = useViewport()
   const { id } = useParams(), { data, edit } = useWorkspace(), { identity, local } = useAuth(), timer = useTimer(), navigate = useNavigate()
   const workout = data.workouts.find(w => w.id === id), [finishing, setFinishing] = useState(false), [discarding, setDiscarding] = useState(false), [busy, setBusy] = useState(false), [recording, setRecording] = useState(false)
   const navigationLock = useRef(false), [navigating, setNavigating] = useState(false)
@@ -55,19 +57,19 @@ export function Workout() {
     if (saved) timer.stop('rest', restContext(workout))
   }
   const recordBoth = async () => { setRecording(true); try { await update(w => w.stationIndex === workout.stationIndex && w.roundIndex === workout.roundIndex && w.phase === workout.phase ? recordTogether(w) : w) } finally { setRecording(false) } }
-  return <><div className="page-heading workout-heading"><div><button className="back-link" onClick={() => navigate('/')}><ArrowLeft size={16} />Επισκόπηση</button><h1>{workout.routine.name}<span className="title-dot">.</span></h1><p>{workout.routine.focus}</p></div><Badge className="live-badge"><span className="live-dot" />ΣΕ ΕΞΕΛΙΞΗ</Badge></div>
+  return <div className={training ? `live-workout ${layout.compact ? 'fit-compact' : ''} ${layout.short ? 'fit-short' : ''}` : 'workout-page'} style={training ? { '--live-height': `${layout.keyboard ? layout.layoutHeight : layout.height}px`, '--live-top': `${layout.top}px` } as CSSProperties : undefined}><div className="page-heading workout-heading"><div><button className="back-link" onClick={() => navigate('/')}><ArrowLeft size={16} />Επισκόπηση</button><h1>{workout.routine.name}<span className="title-dot">.</span></h1><p>{workout.routine.focus}</p></div><Badge className="live-badge"><span className="live-dot" />ΣΕ ΕΞΕΛΙΞΗ</Badge></div>
     <Card className="station-navigation">{workout.routine.stations.map((s, i) => <div className={`station-step ${i === workout.stationIndex ? 'current' : i < workout.stationIndex ? 'past' : ''}`} key={s.id}><span>{i < workout.stationIndex ? <Check size={16} /> : String(i + 1).padStart(2, '0')}</span><div><strong>{s.name}</strong><small>{s.rounds} γύροι · {s.rest === null ? 'χωρίς preset' : `${s.rest}″ rest`}</small></div></div>)}</Card>
     <div className={`round-heading compact-round-heading ${training ? 'training-round-heading' : ''}`} data-testid="round-header"><div className="round-heading-line"><strong className="round-station">{station.name}</strong><span className="round-separator" aria-hidden="true">·</span><h2>Γύρος {workout.roundIndex + 1} <span>/ {station.rounds}</span></h2></div><div className="training-toolbar"><TrainingModeToggle /><WorkoutOptions canDiscard={canDiscard} onFinish={() => setFinishing(true)} onDiscard={() => setDiscarding(true)} onRecord={workout.phase === 0 && athleteIds.every(a => workout.participants.includes(a)) ? () => void recordBoth() : undefined} canRecord={canRecordTogether(workout) && !recording && !navigating} /></div><RoundFlow workout={workout} /></div>
-    <div className="athlete-panels compact-athlete-panels" style={{ '--panel-rows': panelRows } as CSSProperties} onPointerDownCapture={e => {
+    <div className={training ? 'fit-panels' : 'athlete-panels compact-athlete-panels'} style={{ '--panel-rows': panelRows } as CSSProperties} onPointerDownCapture={e => {
       // Keep the focused numeric field active until a tapped action completes.
       if (e.button === 0 && e.target instanceof Element && e.target.closest('button, summary') && e.currentTarget.contains(document.activeElement) && document.activeElement?.closest('.result-inputs')) e.preventDefault()
-    }}>{athleteIds.map(a => <AthletePanel key={a} athlete={a} workout={workout} update={update} present={workout.participants.includes(a)} />)}</div>
+    }}>{athleteIds.map(a => training ? <FitAthletePanel key={a} athlete={a} workout={workout} update={update} /> : <AthletePanel key={a} athlete={a} workout={workout} update={update} present={workout.participants.includes(a)} />)}</div>
     <WorkoutControls workout={workout} ready={ready} canCombine={canCombine} last={last} navigating={navigating} recording={recording} next={next} back={back} recordBoth={recordBoth} />
     <div className="session-progress"><span>Πρόοδος προπόνησης</span><ProgressBar value={state.percent} /><strong>{state.recorded}/{state.total}</strong></div>
     {!canDiscard && <p className="muted small deletion-availability">Η διακοπή χωρίς αποθήκευση θα είναι διαθέσιμη μόλις ενεργοποιηθεί για την ομάδα.</p>}
     <DeleteConfirmation open={discarding} onOpenChange={setDiscarding} title="Διακοπή χωρίς αποθήκευση" description={workout.routine.name} confirmLabel="Διακοπή χωρίς αποθήκευση" message="Τα τρέχοντα σετ και οι σημειώσεις αυτής της προπόνησης θα διαγραφούν. Δεν θα προστεθεί προπόνηση στο ιστορικό. Η ενέργεια δεν αναιρείται." onConfirm={async () => { if (!canDiscard) throw new Error('Η διακοπή δεν έχει ενεργοποιηθεί.'); await edit(w => discardActiveWorkout(w, workout.id)); timer.clear(); navigate('/') }} />
     <Modal open={finishing} onOpenChange={setFinishing} title="Ολοκλήρωση προπόνησης" description="Η καταγραφή μένει αποθηκευμένη, ακόμη και χωρίς σύνδεση."><div className="finish-summary"><span className="finish-icon"><Trophy size={30} /></span><h3>{workout.routine.name}</h3><p>{Object.values(workout.results).filter(r => r.status === 'completed').length} από {state.total} αποτελέσματα έχουν ολοκληρωθεί.</p></div>{allExpected(workout).some(r => workout.results[r.key]?.status !== 'completed') && <div className="inline-notice">Οι ασκήσεις που δεν ολοκληρώθηκαν θα σημειωθούν ως παραλειφθείσες. Η προπόνηση θα αποθηκευτεί ως μερική.</div>}<div className="modal-actions"><Button variant="secondary" onClick={() => setFinishing(false)}>Συνέχεια προπόνησης</Button><Button disabled={busy} onClick={async () => { setBusy(true); try { await edit(w => { const index = w.workouts.findIndex(x => x.id === id); const finished = finishWorkout(w.workouts[index]); w.workouts[index] = finished; return [{ kind: 'workout', payload: finished }] }); timer.clear(); navigate(`/history?session=${id}`) } catch { setBusy(false) } }}><Check size={17} />Αποθήκευση & τέλος</Button></div></Modal>
-  </>
+  </div>
 }
 function AthletePanel({ athlete, workout, update, present }: { athlete: AthleteId; workout: WorkoutType; update: (fn: (w: WorkoutType) => WorkoutType) => Promise<boolean>; present: boolean }) {
   const station = workout.routine.stations[workout.stationIndex], slotIndex = slotFor(athlete, workout.phase), slot = station.slots[slotIndex]

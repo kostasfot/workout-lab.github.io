@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X, ArrowUpRight, Trash2 } from 'lucide-react'
-import { useEffect, useState, type ComponentProps, type HTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useState, type ComponentProps, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import { cn } from '../lib/utils'
 
 const buttonStyles = cva('button', { variants: { variant: { primary: 'button-primary', secondary: 'button-secondary', ghost: 'button-ghost', danger: 'button-danger' }, size: { default: '', small: 'button-small', icon: 'button-icon' } }, defaultVariants: { variant: 'primary', size: 'default' } })
@@ -10,8 +10,8 @@ export function Button({ className, variant, size, ...props }: ComponentProps<'b
 }
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) { return <div className={cn('card', className)} {...props} /> }
 export function Badge({ children, className }: { children: ReactNode; className?: string }) { return <span className={cn('badge', className)}>{children}</span> }
-export function Modal({ open, onOpenChange, title, description, children, wide = false, className }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; wide?: boolean; className?: string }) {
-  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="modal-overlay" /><Dialog.Content className={cn('modal', wide && 'modal-wide', className)} {...(!description ? { 'aria-describedby': undefined } : {})}>
+export function Modal({ open, onOpenChange, title, description, children, wide = false, className, style, onOpenAutoFocus, onCloseAutoFocus }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; wide?: boolean; className?: string; style?: CSSProperties; onOpenAutoFocus?: (event: Event) => void; onCloseAutoFocus?: (event: Event) => void }) {
+  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="modal-overlay" /><Dialog.Content style={style} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} className={cn('modal', wide && 'modal-wide', className)} {...(!description ? { 'aria-describedby': undefined } : {})}>
     <div className="modal-heading"><div><Dialog.Title>{title}</Dialog.Title>{description && <Dialog.Description>{description}</Dialog.Description>}</div><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Κλείσιμο"><X size={20} /></Button></Dialog.Close></div>{children}
   </Dialog.Content></Dialog.Portal></Dialog.Root>
 }

@@ -6,6 +6,7 @@ import { useAuth } from '../context/Auth'
 import { athleteIds, athletes, canRecordTogether, isRecorded, requiredResults, type Workout } from '../lib/model'
 import { recordingIssues } from '../lib/live'
 import { seconds } from '../lib/utils'
+import { useViewport } from '../lib/useViewport'
 import { RestView, restContext } from './RestView'
 import { Button, Card } from './ui'
 
@@ -13,7 +14,7 @@ export function WorkoutControls({ workout, ready, canCombine, last, navigating, 
   workout: Workout; ready: boolean; canCombine: boolean; last: boolean; navigating: boolean; recording: boolean;
   next: () => Promise<boolean>; back: () => Promise<void>; recordBoth: () => Promise<void>
 }) {
-  const { active: training } = useTrainingMode(), timer = useTimer(), { local } = useAuth(), { online, pending, syncing, error } = useWorkspace()
+  const { active: training } = useTrainingMode(), layout = useViewport(), timer = useTimer(), { local } = useAuth(), { online, pending, syncing, error } = useWorkspace()
   const station = workout.routine.stations[workout.stationIndex], both = athleteIds.every(a => workout.participants.includes(a))
   const conflict = pending.some(p => p.conflict)
   const status = local ? 'Στη συσκευή' : !online ? 'Εκτός σύνδεσης' : conflict ? 'Έλεγχος αλλαγών' : pending.length ? `${pending.length} σε αναμονή` : syncing ? 'Συγχρονισμός…' : 'Συγχρονισμένο'
@@ -32,6 +33,8 @@ export function WorkoutControls({ workout, ready, canCombine, last, navigating, 
   const nextButton = <Button disabled={(!ready && !canCombine) || navigating || recording} onClick={() => void next()}>{workout.phase === 0 ? <><ArrowLeftRight size={17} />{canCombine ? 'Καταγραφή και αλλαγή' : 'Αλλαγή ασκήσεων'}</> : last ? <><CheckCheck size={17} />Ολοκλήρωση</> : <>{nextLabel}<ArrowRight size={17} /></>}</Button>
   const restView = <RestView key={restContext(workout)} workout={workout} ready={ready && !navigating && !recording} last={last} onContinue={next} primary={!last} />
   const primary = workout.phase === 0 ? nextButton : ready ? last ? nextButton : restView : both ? recordButton : nextButton
+  const short = training && layout.short
+  const secondary = workout.phase === 1 && ready && (last ? <div className="bar-final-rest">{restView}</div> : <Button variant="ghost" size="small" className="bar-skip-rest" aria-label={nextLabel} title={`${nextLabel} χωρίς διάλειμμα`} disabled={navigating || recording} onClick={() => void next()}>Χωρίς διάλειμμα<ArrowRight size={13} /></Button>)
   const keepFieldFocus = (event: React.PointerEvent<HTMLElement>) => {
     // Keep the focused numeric field active until a tapped action completes.
     if (event.button === 0 && document.activeElement?.closest('.result-inputs') && event.target instanceof Element && event.target.closest('button')) event.preventDefault()
@@ -39,14 +42,15 @@ export function WorkoutControls({ workout, ready, canCombine, last, navigating, 
   return <Card className="workout-control clean-workout-control" data-testid="workout-controls" onPointerDownCapture={keepFieldFocus} aria-busy={navigating || recording}>
     <div className="workout-bar-meta">
       <div className="workout-feedback" role="status" aria-label="Κατάσταση καταγραφής">{feedback.map(message => <span key={message}>{message}</span>)}</div>
-      {workout.phase === 1 && ready && (last ? <div className="bar-final-rest">{restView}</div> : <Button variant="ghost" size="small" className="bar-skip-rest" aria-label={nextLabel} title={`${nextLabel} χωρίς διάλειμμα`} disabled={navigating || recording} onClick={() => void next()}>Χωρίς διάλειμμα<ArrowRight size={13} /></Button>)}
+      {!short && secondary}
       <span className={`workout-sync ${conflict ? 'attention' : ''}`} title={status}><SyncIcon size={13} className={syncing ? 'spinning' : ''} aria-hidden="true" /><span>{status}</span></span>
     </div>
     {training && error && <p className="training-save-error" role="alert">{error}</p>}
-    <div className="workout-navigation">
+    <div className={`workout-navigation ${short && secondary ? 'with-secondary-action' : ''}`}>
       <Button variant="ghost" className="bar-back" disabled={navigating || recording || (workout.phase === 0 && workout.roundIndex === 0 && workout.stationIndex === 0)} onClick={() => void back()} aria-label="Πίσω"><ChevronLeft size={18} /><span>Πίσω</span></Button>
       <Button variant="secondary" className={`bar-timer ${activeTimer ? 'active' : ''}`} aria-label="Άνοιγμα χρονομέτρου" title="Χρονόμετρο" onClick={timer.open}><Timer size={20} />{activeTimer && <span aria-hidden="true">{seconds(remainingSeconds(activeTimer, timer.now))}</span>}</Button>
       <div className="live-main-actions">{primary}</div>
+      {short && secondary}
     </div>
   </Card>
 }
