@@ -1,8 +1,10 @@
 import { clickAdjustment } from './fixtures/adjustments'
 import { test, expect, type Page } from '@playwright/test'
+import { normalPreview } from './fixtures/training'
 import { mockAccount, synchronize } from './fixtures/cloud'
 
 async function preview(page: Page, routine = 1) {
+  await normalPreview(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Προεπισκόπηση στη συσκευή' }).click()
   await page.getByRole('button', { name: `Έναρξη Προπόνηση ${routine}`, exact: true }).click()

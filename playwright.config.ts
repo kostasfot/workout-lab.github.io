@@ -13,6 +13,10 @@ export default defineConfig({
     { name: 'desktop', use: { viewport: { width: 1440, height: 1000 } } },
     { name: 'tablet-landscape', use: { viewport: { width: 1024, height: 768 }, hasTouch: true } },
     { name: 'tablet-portrait', use: { viewport: { width: 800, height: 1280 }, hasTouch: true } },
+    { name: 'phone-landscape', testMatch: /fit-layout\.spec\.ts/, use: { viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true } },
+    { name: 'phone-small', testMatch: /fit-layout\.spec\.ts/, use: { viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true } },
+    { name: 'phone-small-landscape', testMatch: /fit-layout\.spec\.ts/, use: { viewport: { width: 640, height: 360 }, isMobile: true, hasTouch: true } },
+    { name: 'desktop-short', testMatch: /fit-layout\.spec\.ts/, use: { viewport: { width: 1366, height: 768 } } },
     { name: 'phone', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
   ],
 })

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { mockAccount } from './fixtures/cloud'
+import { enterValue as enter } from './fixtures/training'
 
 test('clean action bar gives field feedback, records both pairs and starts rest only on request', async ({ page, context }, info) => {
   const { workout } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
@@ -14,12 +15,12 @@ test('clean action bar gives field feedback, records both pairs and starts rest 
   await expect(feedback).toContainText('Δήμητρα: συμπληρώστε επαναλήψεις')
   await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   await expect(bar.locator('.workout-navigation').getByRole('button')).toHaveCount(3)
-  await anna.getByLabel(/^Βάρος/).fill('5')
+  await enter(page, anna, 'Βάρος', '5')
   await expect(feedback).toContainText('Άννα: συμπληρώστε επαναλήψεις')
-  await anna.getByLabel(/^Επαναλήψεις/).fill('10.5')
+  await enter(page, anna, 'Επαναλήψεις', '10.5')
   await expect(feedback).toContainText('Άννα: ελέγξτε επαναλήψεις')
   await expect(bar.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true })).toBeDisabled()
-  await anna.getByLabel(/^Επαναλήψεις/).fill('10'); await dimitra.getByLabel(/^Επαναλήψεις/).fill('11')
+  await enter(page, anna, 'Επαναλήψεις', '10'); await enter(page, dimitra, 'Επαναλήψεις', '11')
   await expect(feedback).toHaveText('Έτοιμοι για καταγραφή και αλλαγή.')
   await context.setOffline(true)
   await expect(bar.locator('.workout-sync')).toHaveText('Εκτός σύνδεσης')
@@ -29,7 +30,7 @@ test('clean action bar gives field feedback, records both pairs and starts rest 
   await expect(anna.getByRole('heading', { name: 'TRX Rows', exact: true })).toBeVisible()
   await expect(feedback).toContainText('Δήμητρα: συμπληρώστε βάρος')
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await anna.getByLabel(/^Επαναλήψεις/).fill('10'); await dimitra.getByLabel(/^Βάρος/).fill('6'); await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
+  await enter(page, anna, 'Επαναλήψεις', '10'); await enter(page, dimitra, 'Βάρος', '6'); await enter(page, dimitra, 'Επαναλήψεις', '12')
   await expect(feedback).toHaveText('Έτοιμοι για καταγραφή.')
   await bar.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()
   await expect(feedback).toHaveText('Έτοιμοι για διάλειμμα.')

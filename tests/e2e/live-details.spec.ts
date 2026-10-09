@@ -53,7 +53,6 @@ test('previous results and reuse share one compact row and copied other-side dif
     w.roundIndex = 1
   } })
   await page.goto(`/#/workout/${workout.id}`)
-  await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), row = anna.locator('.previous-entry'), copy = row.getByRole('button', { name: 'Ίδιο με πριν', exact: true })
   await expect(row.locator('.previous-result')).toHaveAttribute('title', 'Προηγούμενος γύρος: 6,25 kg · 10 / 12 επ.')
   await expect(anna.getByLabel(/^Άλλη πλευρά/)).toBeHidden()

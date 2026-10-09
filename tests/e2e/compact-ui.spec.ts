@@ -31,7 +31,6 @@ test('recording one athlete stays reliable while the other athlete has a focused
 test('compact adjustments remember selected steps without filling or recording results', async ({ page }, testInfo) => {
   const { workout, requests } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
-  await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
   const weight = anna.locator('.weight-increments'), reps = anna.locator('.value-increments')
   await expect(weight.getByRole('combobox')).toHaveValue('1.25')
@@ -61,7 +60,6 @@ test('compact adjustments remember selected steps without filling or recording r
     const box = (await control.boundingBox())!
     expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44)
     expect(await control.evaluate(el => getComputedStyle(el).fontSize)).toBe('19px')
-    if (page.viewportSize()!.width >= 680) expect(box.y + box.height).toBeLessThan(page.viewportSize()!.height - 100)
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('compact-controls.png') })
@@ -109,7 +107,6 @@ test('compact panels align actual inputs despite wrapped exercise titles and kee
     w.results = {}; w.routine.stations[0].slots[0].movements[0].name = name
   } })
   await page.goto(`/#/workout/${workout.id}`)
-  await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
   await expect(anna.getByRole('heading', { name, exact: true })).toBeVisible()
   await expect(anna.getByLabel(`Στόχος Άννα ${name}`, { exact: true })).toHaveText('10–12 επ.')
@@ -120,7 +117,7 @@ test('compact panels align actual inputs despite wrapped exercise titles and kee
   if (page.viewportSize()!.width >= 680) {
     const a = (await anna.getByLabel(/^Επαναλήψεις/).boundingBox())!, d = (await dimitra.getByLabel(/^Επαναλήψεις/).boundingBox())!
     expect(Math.abs(a.y - d.y)).toBeLessThan(2)
-    expect(a.height).toBeGreaterThanOrEqual(65); expect(d.height).toBeGreaterThanOrEqual(65)
+    expect(a.height).toBe(52); expect(d.height).toBe(52)
   }
   await page.screenshot({ path: testInfo.outputPath('compact-panels.png') })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -144,7 +141,6 @@ test('compact panels retain both TRX movements during combined recording and swa
 test('compact panel alternatives remain selectable and targets remain in seconds', async ({ page }) => {
   const { workout } = await mockAccount(page, 'coach', true, { active: true, routine: 1, configureWorkout: w => { w.stationIndex = 3; w.results = {} } })
   await page.goto(`/#/workout/${workout.id}`)
-  await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra')
   await dimitra.getByLabel('Επιλογή άσκησης').selectOption({ label: 'Plank Hip Dips' })
   await expect(dimitra.getByRole('heading', { name: 'Plank Hip Dips', exact: true })).toBeVisible()

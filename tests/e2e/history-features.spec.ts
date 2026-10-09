@@ -1,5 +1,6 @@
 import { clickAdjustment } from './fixtures/adjustments'
 import { test, expect } from '@playwright/test'
+import { normalPreview } from './fixtures/training'
 import { mockAccount, synchronize } from './fixtures/cloud'
 
 test('coach confirms offline weigh-in deletion, individual set deletion, and whole workout deletion', async ({ page, context }) => {
@@ -67,6 +68,7 @@ test('athletes cannot access deletion controls, and old databases keep coach del
   } finally { await coach.close() }
 })
 test('weight buttons adjust exact quarter-kilogram loads independently and respect recorded sets and limits', async ({ page }, info) => {
+  await normalPreview(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Προεπισκόπηση στη συσκευή' }).click()
   await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση' }).click()

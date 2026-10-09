@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
+import { normalPreview } from './fixtures/training'
 
 async function open(page: Page) {
+  await normalPreview(page)
   await page.goto('/')
   const button = page.getByRole('button', { name: /Προεπισκόπηση στη συσκευή|Άνοιγμα εφαρμογής/ })
   await button.click()

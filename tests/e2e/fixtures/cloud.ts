@@ -3,7 +3,7 @@ import { emptyWorkspace } from '../../../src/lib/program'
 import { createWorkout, finishWorkout, requiredResults, workoutDate, type Workspace } from '../../../src/lib/model'
 import { AccountError, createAccountHandler, type Profile, type AccountInfo } from '../../../supabase/functions/manage-users/handler'
 
-export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spectator', enabled = true, options: { active?: boolean; routine?: number; workoutDiscard?: boolean; accountManagement?: boolean; configureWorkout?: (workout: Workspace['workouts'][number]) => void } = {}) {
+export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spectator', enabled = true, options: { fit?: boolean; active?: boolean; routine?: number; workoutDiscard?: boolean; accountManagement?: boolean; configureWorkout?: (workout: Workspace['workouts'][number]) => void } = {}) {
   const userId = role === 'coach' ? '10000000-0000-0000-0000-000000000001' : role === 'athlete' ? '10000000-0000-0000-0000-000000000002' : '10000000-0000-0000-0000-000000000004', teamId = '20000000-0000-0000-0000-000000000001'
   const remote = emptyWorkspace()
   remote.historyDeletion = enabled; remote.workoutDiscard = options.workoutDiscard ?? enabled; remote.deletedRecords = []; remote.program.revision = 1
@@ -36,9 +36,11 @@ export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spect
     remove: async id => { profiles.delete(id); accounts.delete(id) },
     password: async () => {},
   }, ['http://127.0.0.1:5173'])
-  await page.addInitScript(({ userId, accessToken, expiry }) => {
+  await page.addInitScript(({ userId, accessToken, expiry, teamId, fit }) => {
+    const trainingKey = `wl-training-fit:${teamId}:${userId}`
+    if (localStorage.getItem(trainingKey) === null) localStorage.setItem(trainingKey, fit ? 'yes' : 'no')
     localStorage.setItem('sb-workout-lab-test-auth-token', JSON.stringify({ access_token: accessToken, refresh_token: 'test-refresh', expires_at: expiry, expires_in: 3600, token_type: 'bearer', user: { id: userId, aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } }))
-  }, { userId, accessToken, expiry })
+  }, { userId, accessToken, expiry, teamId, fit: options.fit ?? false })
   await page.route('https://workout-lab-test.supabase.co/**', async route => {
     const pathname = new URL(route.request().url()).pathname
     if (pathname === '/functions/v1/manage-users') {

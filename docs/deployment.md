@@ -29,9 +29,24 @@ The [Publish Workout Lab workflow](../.github/workflows/deploy.yml) remains avai
 
 ## Verified behavior
 
-The production site serves the matching source commit, index, app assets, manifest, and service worker. GitHub reports successful Pages deployment. Validation of the removal of field suggestions includes 58 unit/database/function-handler cases, 76 focused browser cases across desktop, landscape/portrait tablet, and phone sizes, and production PWA offline reloads. The preceding complete browser regression passed 184 cases. These cover expandable notes with saved-content indicators, compact previous-result reuse, optional unilateral counts and automatic expansion, athlete-specific recording feedback, the shared bottom action bar with manual timers and discreet sync status, the compact station/round header, keyboard-accessible options menu with confirmations and recording without a swap, aligned athlete inputs with inline targets, remembered step selectors, reliable recording while a field or step selector in the other panel is focused, four-step round flow, atomic paired recording/swap, direct value entry without suggestions, tablet training mode, manual rest recovery, workout selection, signed weight and reps/seconds adjustments, saved-workout/date editing, draft discard/replacement, history deletion, reconnection, and existing six-character passwords. Authentication and synchronization in browser tests use intercepted test responses; database permissions and RPCs run in PostgreSQL through PGlite. The user has confirmed that live login and the app work; these tests do not use the athletes' real credentials or delete their actual history.
+The production site serves the matching source commit, app assets, manifest and service worker. Verification covers 58 unit/database/function-handler cases, 240 browser cases and production PWA offline reloads. Of the browser cases, 56 check the fitted training screen across eight viewports, including aligned input rows, 44px touch buttons, TRX movement requirements, long exercise names, timed alternatives, absent athletes, final-round controls, private notes, unequal side values, remembered increments, rotation and focused keyboard editing.
 
-The compact live interface and selectable increments use the existing database schema. Weight steps are 1.25 or 2.5 kg; reps are 1 or 5; seconds are 5 or 10. Selected steps persist per account on the device, and timers still start manually. Installed apps offer an update after an active workout has ended.
+| View | Viewport |
+| --- | --- |
+| Desktop | 1440 × 1000 |
+| Short desktop | 1366 × 768 |
+| Tablet landscape | 1024 × 768 |
+| Tablet portrait | 800 × 1280 |
+| Phone portrait | 390 × 844 |
+| Phone landscape | 844 × 390 |
+| Small phone portrait | 360 × 640 |
+| Small phone landscape | 640 × 360 |
+
+The dashboard opens in training mode and fits the visible screen. Value and notes popups can scroll and resize above the keyboard. Normal view restores navigation and retains expandable details. The preference is saved per account on the device. Weight steps remain 1.25 or 2.5 kg; reps are 1 or 5; seconds are 5 or 10. On phones, one adjustment row selects both field and step; short screens place adjustments in the editor. Timers still start manually, and these changes use the existing database schema.
+
+The regression checks retain account permissions, confirmed history deletion, saved-workout/date editing, discard/replacement, paired recording and swap, reuse, manual rest recovery and existing six-character passwords. Browser authentication and synchronization use intercepted test responses; keyboard dimensions are simulated. Database permissions and RPCs run in PostgreSQL through PGlite. Production PWA checks verify offline reloads with a service worker. These checks do not use real account passwords or delete actual history. Installed apps offer an update after an active workout has ended.
+
+The existing-feature run passed 182 of 184 cases initially. Eight focused rechecks passed after updating an older phone test to use the value editor and repeating an aborted tablet reload; every distinct case was verified.
 
 Cloud history deletion requires [migration 002](../supabase/migrations/202610070002_history_deletion.sql). Draft discard and corrected shared comparison dates require [migration 003](../supabase/migrations/202610070003_workout_editing_and_discard.sql), applied after 001 and 002. Frontend publication cannot apply database migrations with the browser's publishable key. Discard is enabled after the app detects the upgraded backend, while saved-workout editing and other logging remain available.
 

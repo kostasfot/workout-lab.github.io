@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
+import { normalPreview } from './fixtures/training'
 
 test('blue start button lets the coach choose every workout without starting a cancelled selection', async ({ page }, info) => {
+  await normalPreview(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Προεπισκόπηση στη συσκευή' }).click()
   await page.getByRole('button', { name: 'Ξεκινήστε προπόνηση', exact: true }).click()

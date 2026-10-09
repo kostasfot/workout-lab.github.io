@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { mockAccount, synchronize } from './fixtures/cloud'
+import { enterValue as enter } from './fixtures/training'
 
 test('four-step flow and combined save/swap survive reload and synchronize as one workout', async ({ page, context }) => {
   const { workout, requests, remote } = await mockAccount(page, 'coach', true, { active: true, configureWorkout: w => { w.results = {} } })
@@ -133,11 +134,11 @@ test('training mode records and swaps, opens a manual rest, and permits discardi
   await page.goto(`/#/workout/${workout.id}`)
   await page.getByRole('button', { name: 'Λειτουργία προπόνησης', exact: true }).click()
   const anna = page.getByTestId('panel-anna'), dimitra = page.getByTestId('panel-dimitra'), controls = page.getByTestId('workout-controls')
-  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('11')
-  await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
+  await enter(page, anna, 'Βάρος', '5'); await enter(page, anna, 'Επαναλήψεις', '11')
+  await enter(page, dimitra, 'Επαναλήψεις', '12')
   await controls.getByRole('button', { name: 'Καταγραφή και αλλαγή', exact: true }).click()
   await expect(anna.getByRole('heading', { name: 'TRX Rows', exact: true })).toBeVisible()
-  await anna.getByLabel(/^Επαναλήψεις/).fill('10'); await dimitra.getByLabel(/^Βάρος/).fill('7.5'); await dimitra.getByLabel(/^Επαναλήψεις/).fill('12')
+  await enter(page, anna, 'Επαναλήψεις', '10'); await enter(page, dimitra, 'Βάρος', '7.5'); await enter(page, dimitra, 'Επαναλήψεις', '12')
   await controls.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true }).click()
   await expect(controls.getByRole('button', { name: 'Έναρξη διαλείμματος', exact: true })).toBeEnabled()
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -165,10 +166,10 @@ test('training mode supports one present athlete and restores navigation after s
   const anna = page.getByTestId('panel-anna')
   await expect(page.getByTestId('panel-dimitra').getByRole('heading', { name: 'Απούσα', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Καταγραφή και των δύο', exact: true })).toHaveCount(0)
-  await anna.getByLabel(/^Βάρος/).fill('5'); await anna.getByLabel(/^Επαναλήψεις/).fill('10')
+  await enter(page, anna, 'Βάρος', '5'); await enter(page, anna, 'Επαναλήψεις', '10')
   await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
   await page.getByRole('button', { name: 'Αλλαγή ασκήσεων', exact: true }).click()
-  await anna.getByLabel(/^Επαναλήψεις/).fill('12')
+  await enter(page, anna, 'Επαναλήψεις', '12')
   await anna.getByRole('button', { name: 'Καταγραφή', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Έναρξη διαλείμματος', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Επιλογές προπόνησης', exact: true }).click()
