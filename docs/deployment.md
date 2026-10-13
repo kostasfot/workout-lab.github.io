@@ -29,7 +29,7 @@ The [Publish Workout Lab workflow](../.github/workflows/deploy.yml) remains avai
 
 ## Verified behavior
 
-The production site serves the matching source commit, app assets, manifest and service worker. Verification covers 58 unit/database/function-handler cases, 240 browser cases and production PWA offline reloads. Of the browser cases, 56 check the fitted training screen across eight viewports, including aligned input rows, 44px touch buttons, TRX movement requirements, long exercise names, timed alternatives, absent athletes, final-round controls, private notes, unequal side values, remembered increments, rotation and focused keyboard editing.
+The production site serves the matching source commit, app assets, manifest and service worker. Verification covers 76 unit/database/function-handler cases, 296 distinct browser cases and production PWA offline reloads. Of the browser cases, 56 check the fitted training screen across eight viewports, including aligned input rows, 44px touch buttons, TRX movement requirements, long exercise names, timed alternatives, absent athletes, final-round controls, private notes, unequal side values, remembered increments, rotation and focused keyboard editing. Another 56 check calendar scheduling, rescheduling, cancellation/restoration, linked starts and results, discard, date corrections, deletion, and read-only athlete/spectator access across the same viewports.
 
 | View | Viewport |
 | --- | --- |
@@ -46,7 +46,7 @@ The dashboard opens in training mode and fits the visible screen. Value and note
 
 The regression checks retain account permissions, confirmed history deletion, saved-workout/date editing, discard/replacement, paired recording and swap, reuse, manual rest recovery and existing six-character passwords. Browser authentication and synchronization use intercepted test responses; keyboard dimensions are simulated. Database permissions and RPCs run in PostgreSQL through PGlite. Production PWA checks verify offline reloads with a service worker. These checks do not use real account passwords or delete actual history. Installed apps offer an update after an active workout has ended.
 
-The existing-feature run passed 182 of 184 cases initially. Eight focused rechecks passed after updating an older phone test to use the value editor and repeating an aborted tablet reload; every distinct case was verified.
+The calendar release's full browser run passed 294 of 296 cases initially. Sixteen focused rechecks passed after correcting two test startup waits: seeded calendar data must load before opening its launcher, and a workout timer must be selected from the live action bar. Every distinct case was verified. The production offline check also creates a calendar plan, reloads it without internet, starts and discards its linked draft, restarts it, and saves/reloads its linked result.
 
 Cloud history deletion requires [migration 002](../supabase/migrations/202610070002_history_deletion.sql). Draft discard and corrected shared comparison dates require [migration 003](../supabase/migrations/202610070003_workout_editing_and_discard.sql), applied after 001 and 002. Frontend publication cannot apply database migrations with the browser's publishable key. Discard is enabled after the app detects the upgraded backend, while saved-workout editing and other logging remain available.
 
@@ -55,3 +55,7 @@ The coach supplied successful live SQL checks for the required components of mig
 ## Account management activation
 
 The coach management tab and spectator interface are included in the static frontend. Activating real account operations requires migration 004 and deploying the `manage-users` Supabase Edge Function separately, as described in [account-management.md](account-management.md). Until the migration is detected, management controls remain disabled. The service-role key stays in Supabase’s function runtime and is never part of the Pages bundle. Local validation covers account authorization, deletion history preservation, and four browser sizes; no real users were created or deleted during testing.
+
+## Calendar activation
+
+The weekly calendar requires [migration 005](../supabase/migrations/202610130005_training_calendar.sql), applied after 001–004. The coach confirmed its successful live execution, and a read-only API check confirmed that the live table exists and denies anonymous access. No additional Edge Function or browser configuration is needed. The frontend enables scheduling after receiving `calendarEnabled` from the backend; shared read-only access preserves the existing detailed-log and private-note boundaries. See [calendar setup](calendar-setup.md).

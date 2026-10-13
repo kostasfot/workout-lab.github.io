@@ -68,6 +68,14 @@ Coach can stop an active workout without saving it, following confirmation. This
 
 Coach can delete individual logged sets or whole saved workouts with confirmation. Removing a set leaves the other records intact and updates completion status and comparisons. Whole-workout deletion also removes its private notes and comparisons. Active workouts are not deleted through history.
 
+## Weekly training calendar
+
+The shared **Ημερολόγιο** tab uses Monday–Sunday weeks and Europe/Athens dates. Desktop and landscape tablets show a week grid; phones and portrait tablets show an agenda. The coach adds individual sessions, choosing a routine, a date, an optional start time, and both athletes by default or just one. Weekly recurrence is deferred. Athletes and spectators see the schedule and safe workout status without editing controls or private notes.
+
+The coach can reschedule, cancel, or restore an unstarted session. Starting it creates the usual live workout with the latest available program snapshot and links its log automatically. Planned participants and actual attendance are retained separately. The existing blue start button offers today's available sessions and an unscheduled option. Only one workout may be active; starting another requires resume or confirmed discard and replacement.
+
+Calendar state derives from actual logs: planned, past pending, active, completed, partial, cancelled, or result removed. Discard releases the original plan; deleting a completed log keeps the plan with an explicit removed-result status. Saved date edits move the result to its actual date and leave a reference on the original planned date. Existing unscheduled workouts are displayed once. Calendar mutations use the offline queue, revision checks, and server authorization; no timer starts automatically.
+
 ## Accounts and progress
 
 The coach and two athletes have private email/password logins in one group; additional spectator logins are supported. Coach edits the training program, both workout logs, goals, weigh-in corrections, and private notes. Athletes read their own detailed workouts, see both athletes' shared workout comparisons and body-weight progress, and add their own weigh-ins. They cannot edit workouts, program, goals, or the other athlete's measurements. Private coach notes are kept separately and never returned to athletes or spectators. Spectators can read both athletes’ completed detailed workouts, comparisons, weights, and goals, with all training mutations denied at both the interface and database.

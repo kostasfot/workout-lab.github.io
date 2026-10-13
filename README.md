@@ -37,7 +37,7 @@ The development login includes an explicit device preview for testing without ac
 
 ## Connect Supabase
 
-Follow [the account and database guide](docs/supabase-setup.md). Apply all four migrations in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. Existing installations only need the unapplied migrations. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
+Follow [the account and database guide](docs/supabase-setup.md). Apply migrations 001–005 in order, create three confirmed email/password users, and run the bootstrap once to assign their roles. Existing installations only need the unapplied migrations. The supplied user IDs are already filled in [bootstrap.sql](supabase/bootstrap.sql).
 
 The coach manages the program, workout records, private notes, and goals. Each athlete can read her own workout details, see both athletes' shared comparisons and weights, and add her own weigh-ins. Server permissions enforce these boundaries. Authentication alone does not assign membership; the bootstrap does that.
 
@@ -71,6 +71,12 @@ The output is `dist/`. The live app is at **https://kostasfot.github.io/workout-
 Open the app online and sign in on each device before using it offline. Production caches the app, fonts, and page bundles; private API responses are not stored in the service-worker cache. Entries are saved in account-scoped IndexedDB and queued for cloud sync. The UI distinguishes local preview, offline/pending changes, synchronized records, and conflicts. Resolve conflicting versions from Settings; a cloud revision is not silently overwritten.
 
 Timers use saved deadlines and start only when pressed. Closing the popup or reloading does not reset a running timer. Discarding a workout clears its timers and notes. Sound requires the app to be active; a background operating-system alarm is not provided. Updates are deferred during an active workout. Finished workouts retain the program snapshot used at the time. Editing the training date updates history, comparisons, and the CSV filename while preserving original start/completion timestamps. Settings offers a JSON backup; workout details offer CSV export.
+
+## Training calendar
+
+**Ημερολόγιο** shows a Monday–Sunday week using Athens dates and optional start times. The coach schedules a routine for both athletes or one, reschedules or cancels an unstarted session, and starts its linked live workout. Athletes and spectators have read-only access to the shared schedule and status. The dashboard shows upcoming sessions, and its blue start button offers today's plans alongside **Εκτός προγράμματος**.
+
+Results appear on their actual training date. A reference remains on the planned date if it differs. Discarding a draft releases its calendar entry; deleting saved history marks the removed result. Calendar edits and linked workouts persist offline and synchronize through the existing queue. See [calendar setup and behavior](docs/calendar-setup.md) for migration 005 and verification limits.
 
 ## Implementation
 

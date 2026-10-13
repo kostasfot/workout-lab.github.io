@@ -8,6 +8,8 @@ In the project's **SQL Editor**, choose **New query**, paste the complete conten
 
 ## 2. Create three app users
 
+For a new installation, apply the remaining numbered migrations (002–005) after the initial schema. Existing installations apply only their missing migrations. [Migration 005](../supabase/migrations/202610130005_training_calendar.sql) activates the weekly calendar; see [calendar setup](calendar-setup.md). The bootstrap remains a one-time step after creating the accounts.
+
 In **Authentication → Users**, choose **Add user → Create new user**. Create the coach, Άννα, and Δήμητρα with a distinct email and a password of at least eight characters. Enter passwords only in the Supabase dashboard. Select the option to confirm the email automatically for these manually created accounts.
 
 Existing accounts can sign in with their current password, including a six-character password already accepted by Supabase. The sign-in form only requires a nonempty password and lets Supabase authenticate it. The eight-character minimum applies when setting a new password through recovery, not when signing in.
@@ -81,6 +83,10 @@ In **Ιστορικό**, the coach can open **Επεξεργασία προπό�
 ## 8. Enable account management and spectators
 
 Apply migration 004 and deploy the **manage-users** Edge Function using the [step-by-step account management guide](account-management.md). The coach can then create spectators, replace an athlete login, delete athlete/spectator accounts, and set a new password. The roster remains Άννα and Δήμητρα. Spectators have read-only access to both athletes' saved training and progress, excluding private notes. Existing passwords cannot be displayed. Account operations execute online in Supabase; they are not offline mutations.
+
+## 9. Enable the weekly calendar
+
+Apply [migration 005](../supabase/migrations/202610130005_training_calendar.sql) after 001–004, then refresh or synchronize the app. The coach confirmed that it succeeded on the live project. See [calendar setup](calendar-setup.md) for scheduling, linked workouts, roles, and offline behavior. No additional Edge Function deployment is required.
 
 ## Troubleshooting
 
