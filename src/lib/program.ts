@@ -29,7 +29,7 @@ export const initialRoutines: Routine[] = [
 export function emptyWorkspace(): Workspace {
   return {
     program: { id: '6552e4fb-23da-4c62-b2fa-e14a5c4519bf', revision: 0, routines: structuredClone(initialRoutines), createdAt: '2026-10-07T00:00:00Z' },
-    workouts: [], weighIns: [], comparisons: [], notes: [],
+    workouts: [], weighIns: [], comparisons: [], notes: [], calendarSessions: [], calendarWorkouts: [],
     goals: { anna: { id: 'anna', value: null, revision: 0 }, dimitra: { id: 'dimitra', value: null, revision: 0 } },
   }
 }

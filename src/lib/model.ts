@@ -29,6 +29,16 @@ export interface Workout {
   status: 'active' | 'completed' | 'partial'; stationIndex: number; roundIndex: number; phase: 0 | 1;
   participants: AthleteId[]; selections: Record<string, string>; results: Record<string, SetResult>;
   revision: number
+  scheduleId?: string; scheduleRevision?: number
+}
+export interface CalendarSession {
+  id: string; date: string; startTime: string | null; routineId: string; routineName: string;
+  participants: AthleteId[]; status: 'planned' | 'cancelled'; workoutId: string | null;
+  resultRemoved: boolean; revision: number; createdAt: string
+}
+export interface CalendarWorkout {
+  id: string; date: string; name: string; routineId: string; participants: AthleteId[];
+  status: Workout['status']; scheduleId?: string | null
 }
 export interface WeighIn { id: string; athlete: AthleteId; date: string; weight: number; revision: number; createdAt: string }
 export interface CoachNote { id: string; workoutId: string; athlete: AthleteId; text: string; revision: number }
@@ -38,11 +48,12 @@ export interface Workspace {
   program: Program; workouts: Workout[]; weighIns: WeighIn[]; goals: Record<AthleteId, Goal>;
   comparisons: Comparison[]; notes: CoachNote[];
   historyDeletion?: boolean; workoutDiscard?: boolean; accountManagement?: boolean; deletedRecords?: DeletedRecord[]
+  calendarEnabled?: boolean; calendarSessions?: CalendarSession[]; calendarWorkouts?: CalendarWorkout[]
 }
 export interface DeletedRecord { kind: 'workout' | 'weighin'; id: string; revision: number }
-export interface Deletion { id: string; revision: number; deleted: true; discard?: true }
-export type MutationKind = 'program' | 'workout' | 'weighin' | 'goal' | 'note'
-export type MutationPayload = Program | Workout | WeighIn | Goal | CoachNote | Deletion
+export interface Deletion { id: string; revision: number; deleted: true; discard?: true; scheduleId?: string; scheduleRevision?: number }
+export type MutationKind = 'program' | 'workout' | 'weighin' | 'goal' | 'note' | 'calendar'
+export type MutationPayload = Program | Workout | WeighIn | Goal | CoachNote | CalendarSession | Deletion
 export const isDeletion = (payload: MutationPayload): payload is Deletion => 'deleted' in payload && payload.deleted === true
 
 export function deleteLoggedSet(workout: Workout, key: string): Workout {
@@ -90,7 +101,12 @@ export function discardActiveWorkout(workspace: Workspace, id: string): { kind: 
   workspace.workouts = workspace.workouts.filter(w => w.id !== id)
   workspace.notes = workspace.notes.filter(n => n.workoutId !== id)
   workspace.comparisons = workspace.comparisons.filter(c => c.id !== id)
+  removeCalendarLink(workspace, id, true)
   return [{ kind: 'workout', payload: { id, revision: workout.revision, deleted: true, discard: true } }]
+}
+export function removeCalendarLink(workspace: Workspace, workoutId: string, discarded: boolean) {
+  workspace.calendarWorkouts = (workspace.calendarWorkouts || []).filter(w => w.id !== workoutId)
+  workspace.calendarSessions = (workspace.calendarSessions || []).map(s => s.workoutId === workoutId ? { ...s, workoutId: null, resultRemoved: !discarded } : s)
 }
 export function formatDate(value: string, long = false) {
   return new Intl.DateTimeFormat('el-GR', { day: 'numeric', month: long ? 'long' : 'short', year: long ? 'numeric' : undefined, timeZone: 'Europe/Athens' }).format(new Date(value.length === 10 ? value + 'T12:00:00Z' : value))

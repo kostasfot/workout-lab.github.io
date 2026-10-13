@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import { isDeletion, type CoachNote, type MutationKind, type MutationPayload, type Program, type Workspace } from './model'
+import { isDeletion, removeCalendarLink, type CoachNote, type MutationKind, type MutationPayload, type Program, type Workout, type Deletion, type Workspace } from './model'
 import { emptyWorkspace } from './program'
 
 export interface LocalWorkspace { scope: string; data: Workspace }
@@ -25,7 +25,13 @@ export async function ensureWorkspace(scope: string, database = db) {
 export async function editWorkspace(scope: string, synced: boolean, edit: (workspace: Workspace) => { kind: MutationKind; payload: MutationPayload }[], database = db) {
   await database.transaction('rw', database.workspaces, database.mutations, async () => {
     const data = (await database.workspaces.get(scope))?.data || emptyWorkspace()
+    const links = new Map(data.workouts.filter(w => w.scheduleId).map(w => [w.id, w.scheduleId!]))
     const changes = edit(data)
+    for (const change of changes) if (change.kind === 'workout' && isDeletion(change.payload)) {
+      const scheduleId = links.get(change.payload.id)
+      if (scheduleId) change.payload.scheduleId = scheduleId
+      removeCalendarLink(data, change.payload.id, change.payload.discard === true)
+    }
     await database.workspaces.put({ scope, data })
     if (!synced) return
     for (const { kind, payload } of changes) {
@@ -48,12 +54,38 @@ export function setRevision(data: Workspace, kind: MutationKind, id: string, rev
   if (kind === 'weighin') { const value = data.weighIns.find(x => x.id === id); if (value) value.revision = revision }
   if (kind === 'goal') data.goals[id as 'anna' | 'dimitra'].revision = revision
   if (kind === 'note') { const value = data.notes.find(x => x.id === id); if (value) value.revision = revision }
+  if (kind === 'calendar') { const value = data.calendarSessions?.find(x => x.id === id); if (value) value.revision = revision }
+}
+export function mutationPriority(item: QueuedMutation) {
+  return item.kind === 'program' ? -3 : item.kind === 'workout' && isDeletion(item.payload) ? -2 : item.kind === 'calendar' ? -1 : 0
+}
+export function prepareCalendarMutation(data: Workspace, item: QueuedMutation, pending: QueuedMutation[]): MutationPayload | null {
+  if (item.kind !== 'workout') return item.payload
+  const value = item.payload as Workout | Deletion
+  if (!value.scheduleId) return value
+  const session = data.calendarSessions?.find(s => s.id === value.scheduleId)
+  if (!isDeletion(value) && pending.some(p => p.kind === 'calendar' && p.entityId === value.scheduleId)) return null
+  return { ...value, scheduleRevision: session?.revision ?? value.scheduleRevision }
 }
 export async function acknowledge(scope: string, sent: QueuedMutation, revision: number, database = db) {
   await database.transaction('rw', database.workspaces, database.mutations, async () => {
     const row = await database.workspaces.get(scope)
-    if (row) { setRevision(row.data, sent.kind, sent.entityId, revision); await database.workspaces.put(row) }
     const current = await database.mutations.get(sent.key)
+    if (row) {
+      if (sent.kind === 'workout') {
+        const payload = sent.payload as Workout | Deletion
+        const bindingChange = isDeletion(payload) ? sent.baseRevision > 0 : sent.baseRevision === 0
+        const session = row.data.calendarSessions?.find(s => s.id === payload.scheduleId)
+        if (bindingChange && session && payload.scheduleRevision !== undefined) {
+          const previous = session.revision, next = Math.max(previous, payload.scheduleRevision + 1)
+          session.revision = next
+          const planned = await database.mutations.get(`${scope}:calendar:${session.id}`)
+          if (planned && next > previous && planned.baseRevision === previous) await database.mutations.put({ ...planned, baseRevision: next,
+            payload: { ...planned.payload, revision: next }, operationId: crypto.randomUUID() })
+        }
+      }
+      setRevision(row.data, sent.kind, sent.entityId, revision); await database.workspaces.put(row)
+    }
     if (!current) return
     if (current.operationId === sent.operationId) await database.mutations.delete(sent.key)
     else await database.mutations.put({ ...current, baseRevision: revision, payload: { ...current.payload, revision } })
@@ -80,6 +112,7 @@ export async function rebaseConflict(scope: string, key: string, revision: numbe
 export function mergeRemote(local: Workspace, remote: Workspace, pending: QueuedMutation[]): Workspace {
   pending = pending.filter(p => !deletedRemotely(remote, p))
   const queued = (kind: MutationKind, id: string) => pending.some(p => p.kind === kind && p.entityId === id)
+  const sessionLink = (id: string) => pending.some(p => p.kind === 'workout' && (p.payload as Workout | Deletion).scheduleId === id)
   return {
     program: queued('program', 'catalog') ? local.program : remote.program || local.program,
     workouts: [...remote.workouts.filter(x => !queued('workout', x.id)), ...local.workouts.filter(x => queued('workout', x.id))],
@@ -93,6 +126,12 @@ export function mergeRemote(local: Workspace, remote: Workspace, pending: Queued
     historyDeletion: remote.historyDeletion,
     workoutDiscard: remote.workoutDiscard,
     accountManagement: remote.accountManagement,
+    calendarEnabled: remote.calendarEnabled,
+    calendarSessions: [...(remote.calendarSessions || []).filter(x => !queued('calendar', x.id)).map(session => {
+      const saved = local.calendarSessions?.find(s => s.id === session.id)
+      return sessionLink(session.id) && saved ? { ...session, workoutId: saved.workoutId, resultRemoved: saved.resultRemoved } : session
+    }), ...(local.calendarSessions || []).filter(x => queued('calendar', x.id))],
+    calendarWorkouts: (remote.calendarWorkouts || []).filter(x => !queued('workout', x.id)),
     deletedRecords: remote.deletedRecords || [],
   }
 }
