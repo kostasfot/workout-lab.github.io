@@ -77,6 +77,8 @@ export async function mockAccount(page: Page, role: 'coach' | 'athlete' | 'spect
       if (request.kind === 'calendar') remote.calendarSessions = [...(remote.calendarSessions || []).filter(s => s.id !== request.payload.id), { ...request.payload, revision: request.expected_revision + 1 }]
       if (request.kind === 'program') remote.program = { ...request.payload, revision: request.expected_revision + 1 }
       if (request.kind === 'note') remote.notes = [...remote.notes.filter(n => n.id !== request.payload.id), { ...request.payload, revision: request.expected_revision + 1 }]
+      if (request.kind === 'weighin') remote.weighIns = [...remote.weighIns.filter(w => w.id !== request.payload.id), { ...request.payload, revision: request.expected_revision + 1 }]
+      if (request.kind === 'goal') remote.goals[request.payload.id as 'anna' | 'dimitra'] = { ...request.payload, revision: request.expected_revision + 1 }
       body = request.expected_revision + 1
     } else { throw new Error(`Unexpected mock request: ${pathname}`) }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })

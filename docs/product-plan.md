@@ -84,6 +84,14 @@ Weights and goals begin empty. Progress charts use actual measurements, with abs
 
 Only the coach can delete weigh-ins. Deletion immediately recalculates the history, chart, and summary; each athlete's other measurements and goals remain intact.
 
+## Progress analytics
+
+The approved analytics release adds an exercise explorer, meaningful personal records, target attainment, round consistency, and weekly weight trends. Effort tracking is excluded. These features live inside **Πρόοδος**, with separate **Βάρος** and **Ασκήσεις** tabs, and preserve the current private coach/two-athlete/spectator application.
+
+The explorer filters exercise variants, athlete, and inclusive dates, and links chart points, records, and summaries to saved workout details. It excludes live/deleted workouts and uses immutable saved prescriptions. Completed sets in partial workouts remain eligible. Per-side comparisons use the smaller side count, and load retains its per-dumbbell meaning. Target attainment is shown with completed/planned counts; missing work never becomes zero performance. Record thresholds and comparison loads are explicit. Round-change percentages require complete rounds with the same load and target.
+
+Weekly trends first average multiple same-day weigh-ins, then calculate a weekly mean or median across measured days. Counts, missing weeks, and partial periods remain visible. Existing measurement/goal editing and permissions remain intact. No additional backend schema is needed. Exact definitions and verification scope are in [analytics.md](analytics.md).
+
 ## Persistence and program edits
 
 Entries are saved locally before cloud synchronization. Storage is scoped to the signed-in account. Offline entries remain queued until acknowledged. Revision conflicts are displayed for explicit resolution; the app preserves the local version while it is pending. Sign-out is deferred while there are unsynchronized changes.

@@ -254,8 +254,32 @@ try {
   await expect(calendarResult).toContainText('Μερική ολοκλήρωση')
   await calendarResult.click(); await page.getByRole('dialog').getByRole('button', { name: 'Προβολή καταγραφής', exact: true }).click()
   await expect(page.getByText('5 kg / αλτήρα · 10 επ.', { exact: true })).toBeVisible()
+  // Analytics derive from the same durable logs, without another service.
+  await page.goto(`${url}#/progress?view=exercises`)
+  await expect(page.getByTestId('exercise-explorer')).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Άσκηση για ανάλυση' })).toContainText('Sumo Squats')
+  await expect(page.getByTestId('target-attainment-anna')).toHaveText('100%')
+  await expect(page.getByTestId('set-completion-anna')).toHaveText('1 / 3')
+  await expect(page.getByRole('region', { name: 'Ρεκόρ Άννα', exact: true })).toContainText('5 kg / αλτήρα')
+  await page.getByRole('combobox', { name: 'Μέτρηση γραφήματος άσκησης' }).selectOption('value')
+  await page.reload()
+  await expect(page.getByRole('combobox', { name: 'Μέτρηση γραφήματος άσκησης' })).toHaveValue('value')
+  await expect(page.getByTestId('set-completion-anna')).toHaveText('1 / 3')
+  await page.getByRole('button', { name: 'Προβολή προπόνησης', exact: true }).click()
+  await expect(page.getByText('5 kg / αλτήρα · 10 επ.', { exact: true })).toBeVisible()
+  await page.goto(`${url}#/progress`)
+  await expect(page.getByRole('heading', { name: 'Η εβδομαδιαία τάση περιμένει μετρήσεις.', exact: true })).toBeVisible()
+  for (const weight of ['100', '102']) {
+    await page.getByRole('button', { name: 'Νέα μέτρηση', exact: true }).click()
+    await page.getByRole('dialog').getByLabel('Βάρος (kg)', { exact: true }).fill(weight)
+    await page.getByRole('button', { name: 'Αποθήκευση μέτρησης', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  }
+  await expect(page.getByTestId('weekly-summary-anna')).toContainText('101 kg')
+  await expect(page.getByTestId('weekly-summary-anna')).toContainText('1 ημέρα · 2 μετρήσεις')
+  await page.reload(); await expect(page.getByTestId('weekly-summary-anna')).toContainText('101 kg')
   expect(errors).toEqual([])
-  console.log('PASS: production PWA offline reloads, calendar scheduling and linked workout lifecycle, expandable private notes, preserved optional side counts, compact value reuse, clean action bar, direct value entry without suggestions, atomic recording/swap, four-step flow, persistent training mode, dedicated rest recovery, weight/reps/seconds adjustments, corrected workout dates, history deletion, replacement/discard, and timer cleanup.')
+  console.log('PASS: production PWA offline reloads, exercise explorer, personal records, target attainment, weekly weight trends, calendar scheduling and linked workout lifecycle, expandable private notes, preserved optional side counts, compact value reuse, clean action bar, direct value entry without suggestions, atomic recording/swap, four-step flow, persistent training mode, dedicated rest recovery, weight/reps/seconds adjustments, corrected workout dates, history deletion, replacement/discard, and timer cleanup.')
 } finally {
   if (browser) await browser.close()
   if (server) {

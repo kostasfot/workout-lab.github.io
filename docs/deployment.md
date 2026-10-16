@@ -29,7 +29,9 @@ The [Publish Workout Lab workflow](../.github/workflows/deploy.yml) remains avai
 
 ## Verified behavior
 
-The production site serves the matching source commit, app assets, manifest and service worker. Verification covers 76 unit/database/function-handler cases, 296 distinct browser cases and production PWA offline reloads. Of the browser cases, 56 check the fitted training screen across eight viewports, including aligned input rows, 44px touch buttons, TRX movement requirements, long exercise names, timed alternatives, absent athletes, final-round controls, private notes, unequal side values, remembered increments, rotation and focused keyboard editing. Another 56 check calendar scheduling, rescheduling, cancellation/restoration, linked starts and results, discard, date corrections, deletion, and read-only athlete/spectator access across the same viewports.
+The production site serves the matching source commit, app assets, manifest and service worker. Analytics release verification covers 97 unit/database/function-handler cases, 124 targeted browser cases, and production PWA offline reloads. The browser coverage includes 72 analytics checks across the eight viewports below and 52 existing account-management, workout, and history checks. It verifies exercise/date/athlete filters, rapid field and keyboard entry, chart-to-history links, load-matched records, target denominators, round comparison eligibility, saved corrections/deletions, read-only roles, weekly means/medians, and empty data. The offline check also verifies exercise analytics and weekly weight trends after reloading without internet.
+
+The preceding calendar release verified 76 unit/database/function-handler cases and 296 distinct browser cases. Of those browser cases, 56 check the fitted training screen across eight viewports, including aligned input rows, 44px touch buttons, TRX movement requirements, long exercise names, timed alternatives, absent athletes, final-round controls, private notes, unequal side values, remembered increments, rotation and focused keyboard editing. Another 56 check calendar scheduling, rescheduling, cancellation/restoration, linked starts and results, discard, date corrections, deletion, and read-only athlete/spectator access across the same viewports.
 
 | View | Viewport |
 | --- | --- |
@@ -59,3 +61,7 @@ The coach management tab and spectator interface are included in the static fron
 ## Calendar activation
 
 The weekly calendar requires [migration 005](../supabase/migrations/202610130005_training_calendar.sql), applied after 001–004. The coach confirmed its successful live execution, and a read-only API check confirmed that the live table exists and denies anonymous access. No additional Edge Function or browser configuration is needed. The frontend enables scheduling after receiving `calendarEnabled` from the backend; shared read-only access preserves the existing detailed-log and private-note boundaries. See [calendar setup](calendar-setup.md).
+
+## Analytics activation
+
+Exercise analytics and weekly weight trends use the existing saved workout snapshots and weigh-ins. Publishing the frontend enables **Πρόοδος → Ασκήσεις** and the weekly trend card under **Πρόοδος → Βάρος**; no additional SQL migration, Edge Function, subscription, or account setup is required. Current detailed-workout permissions remain in force. Calculations and limitations are documented in [analytics.md](analytics.md). Effort tracking is excluded.

@@ -80,4 +80,6 @@ Results appear on their actual training date. A reference remains on the planned
 
 ## Implementation
 
+**Πρόοδος → Ασκήσεις** adds the exercise explorer, personal records at a selected load/rep or duration threshold, saved-target attainment, and round consistency. Chart points and record sources open saved workout details. Coach/spectator comparisons and athletes' personal views follow existing permissions. **Πρόοδος → Βάρος** adds weekly means/medians with measurement-day counts and gaps, alongside the existing measurements and goals. These features work from existing logs, including offline records, and require no SQL migration or effort tracking. See [analytics definitions](docs/analytics.md).
+
 React, TypeScript, Vite, Tailwind CSS, Radix UI, and Recharts form the interface. Dexie handles local persistence; Supabase provides email/password authentication, PostgreSQL, row-level security, and revision-aware RPC synchronization. The PWA uses Workbox. See [the agreed requirements](docs/product-plan.md) for the source interpretation and scope.
